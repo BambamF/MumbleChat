@@ -1,0 +1,219 @@
+package com.mumble.app;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import javax.swing.*;
+import javax.swing.border.LineBorder;
+import org.springframework.security.crypto.bcrypt.*;
+
+import java.awt.*;
+
+public class CreateAccountPanel extends JPanel{
+
+    private final JTextField unameField = new JTextField(15);
+    private final JTextField emailField = new JTextField(15);
+    private final JTextField phoneField = new JTextField(15);
+    private final JPasswordField passwordField = new JPasswordField(15);
+    private final JPasswordField confirmPasswordField = new JPasswordField(15);
+
+    private final JLabel unameError = new JLabel(" ");
+    private final JLabel emailError = new JLabel(" ");
+    private final JLabel passwordError = new JLabel(" ");
+    private final JLabel confirmPasswordError = new JLabel(" ");
+
+    private MumbleApp app;
+    
+    public CreateAccountPanel(MumbleApp a){
+
+
+
+
+        super(new BorderLayout());
+        this.app = a;
+
+        // create the label
+        JLabel header = new JLabel("create your account");
+        header.setHorizontalAlignment(SwingConstants.CENTER);
+        header.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        this.add(header, BorderLayout.NORTH);
+
+        // create the wrapper panel
+        JPanel inputPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.weightx = 1.0;
+
+        int row = 0;
+
+        // add the username label and field
+        addField(inputPanel, gbc, row++, "username:", unameField, unameError);
+
+        // add the email label and field
+        addField(inputPanel, gbc, row++, "email:", emailField, emailError);
+
+        // add the phone label and field
+        addField(inputPanel, gbc, row++,"phone:", phoneField, null);
+        
+        // add the password and confirm password labels and fields
+        addField(inputPanel, gbc, row++, "password:",passwordField, passwordError);
+        addField(inputPanel, gbc, row++, "confirm password:", confirmPasswordField, confirmPasswordError);
+
+        // login button 
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        JButton loginButton = new JButton("login");
+        inputPanel.add(loginButton, gbc);
+
+        // SignUp button
+        gbc.gridx = 1;
+        gbc.gridy = row;
+        gbc.anchor = GridBagConstraints.WEST;
+        JButton signUpButton = new JButton("sign up");
+        inputPanel.add(signUpButton, gbc);
+
+        this.add(inputPanel, BorderLayout.CENTER);
+
+        signUpButton.addActionListener((ae) -> {
+            if(submitForm()) MumbleApp.showChatPage();
+        });
+
+        loginButton.addActionListener((ae) -> {
+            MumbleApp.showLoginPage();
+        });
+    }
+
+    private void addField(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent input, JLabel errorLabel){
+
+        // Label
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.EAST;
+        panel.add(new JLabel(label), gbc);
+
+        // input field
+        gbc.gridx = 1;
+        gbc.anchor = GridBagConstraints.WEST;
+        panel.add(input, gbc);
+
+        if(errorLabel != null){
+            gbc.gridx = 1;
+            gbc.gridy = row + 1;
+            errorLabel.setForeground(Color.RED);
+            panel.add(errorLabel, gbc);
+        }
+    }
+
+    private boolean submitForm(){
+
+        String unameText = unameField.getText();
+        unameText = InputSanitiser.sanitiseUsername(unameText);
+        String emailText = emailField.getText();
+        emailText = InputSanitiser.sanitiseString(emailText);
+        char[] password = passwordField.getPassword();
+        char[] confPassword = confirmPasswordField.getPassword();
+        String phoneText = phoneField.getText();
+        phoneText = InputSanitiser.sanitiseString(phoneText);
+
+        boolean hasErrors = false;
+
+        unameError.setText(" ");
+        emailError.setText(" ");
+        passwordError.setText(" ");
+        confirmPasswordError.setText(" ");
+
+        unameField.setBorder(UIManager.getLookAndFeel().getDefaults().getBorder("TextField.border")); // Reset border
+
+        boolean usernameExists = DatabaseManager.usernameExists(unameText);
+
+        if(unameText.isEmpty()){
+            unameError.setText("username cannot be empty");
+            hasErrors = true;
+        }
+
+        if(usernameExists){
+
+            // colour the field border red
+            unameField.setBorder(new LineBorder(Color.RED, 2));
+
+            // add the text to the error label
+            unameError.setText("That username already exists");
+
+            hasErrors = true;
+        }
+
+        if (!phoneText.matches("\\d+")) {
+            phoneField.setBorder(new LineBorder(Color.RED, 2));
+            hasErrors = true;
+        }
+
+        String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+
+        if(!emailText.matches(emailRegex)){
+            emailError.setText("please enter a valid email address");
+            hasErrors = true;
+        }
+        else if(DatabaseManager.doesEmailExist(emailText)){
+            emailError.setText("email already exists, please login");
+            hasErrors = true;
+        }
+        else if(emailText.isEmpty()){
+            emailError.setText("email is required");
+            hasErrors = true;
+        }
+
+        if(password.length < 1){
+            passwordError.setText("password is required");
+            hasErrors = true;
+        }
+
+        if(confPassword.length < 1){
+            passwordError.setText("password confirmation is required");
+            hasErrors = true;
+        }
+
+        if(!new String(password).equals(new String(confPassword))){
+            passwordError.setText("passwords do not match");
+            confirmPasswordError.setText("passwords do not match");
+            hasErrors = true;
+        }
+
+        if(hasErrors) return false;
+
+        Date date = new Date();
+        String dateText = date.toString();
+
+        String pwHash = hashPassword(password);
+
+        String phoneNumber = (phoneText.isEmpty()) ? null : phoneText;
+
+        
+        DatabaseHelper.saveUser(unameText, pwHash, emailText, phoneNumber, dateText);
+        
+
+        Arrays.fill(password, '0');
+        Arrays.fill(confPassword, '0');
+
+        unameField.setText("");
+        emailField.setText("");
+        phoneField.setText("");
+        passwordField.setText("");
+        confirmPasswordField.setText("");  
+        
+        System.out.println("Account created successfully!");
+
+        return true;
+    }
+
+    private String hashPassword(char[] password) {
+        return BCrypt.hashpw(new String(password), BCrypt.gensalt(12));
+    }
+
+}

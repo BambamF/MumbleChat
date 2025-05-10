@@ -1,0 +1,114 @@
+package com.mumble.app;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class DatabaseManager{
+
+    private static final String DB_URL = "jdbc:sqlite:mumble.db";
+
+    public  static Connection getConnection() throws SQLException{
+        return DriverManager.getConnection(DB_URL);
+    }
+
+    public static void saveMessage(Message message){
+        String sql = "INSERT INTO messages (user_id, message, timestamp) VALUES (?, ?, ?)";
+
+        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setInt(1, message.getUserId());
+            pstmt.setString(2, message.getMessage());
+            pstmt.setString(3, message.getTimestamp());
+            pstmt.executeUpdate();
+        }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+    }
+
+    public static List<Message> getAllMessages(){
+        String sql = "SELECT * FROM messages ORDER BY timestamp DESC";
+        List<Message> messages = new ArrayList<>();
+
+        try(Connection conn = DatabaseHelper.connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)){
+            while(rs.next()){
+                int id = rs.getInt("user_id");
+                String message = rs.getString("message");
+                String timestamp = rs.getString("timestamp");
+
+                messages.add(new Message(id, "username", 0, message, timestamp));
+            }
+        }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return messages;
+    }
+
+    public static boolean doesEmailExist(String email){
+        String sql = "SELECT 1 from users WHERE email = ?";
+
+        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setString(1, email);
+            ResultSet rs = pstmt.executeQuery();
+            if(rs.next()){
+                return true;
+            }
+        }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public static int getUserId(String username, String password){
+        String sql = "SELECT id FROM users WHERE username = ?";
+
+        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            if(rs.next()){
+                return rs.getInt("id");
+            }
+        }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+    public static String getPassword(String username){
+        String sql = "SELECT password from users WHERE username = ?";
+
+        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            if(rs.next()){
+                return rs.getString("password");
+            }
+        }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static boolean usernameExists(String username){
+        String sql = "SELECT 1 FROM users WHERE username = ?";
+
+        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            return rs.next();
+        }
+        catch(SQLException e){
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+    
+}
