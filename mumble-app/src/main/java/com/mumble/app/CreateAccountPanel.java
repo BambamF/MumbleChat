@@ -217,7 +217,7 @@ public class CreateAccountPanel extends JPanel{
 
         String phoneNumber = (phoneText.isEmpty()) ? null : phoneText;
 
-        
+        // save the user details to the database
         DatabaseHelper.saveUser(unameText, pwHash, emailText, phoneNumber, dateText);
         
 
