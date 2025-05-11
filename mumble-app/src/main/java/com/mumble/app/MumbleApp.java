@@ -23,6 +23,7 @@ public class MumbleApp extends JFrame {
 
         // creates the database user and message schema
         DatabaseHelper.createSchema();
+        // DatabaseHelper.resetMessagesTable();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
 
         // card layout to switch pages
         cardLayout = new CardLayout();

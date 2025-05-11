@@ -109,7 +109,7 @@ public class ChatClientConnection implements Runnable{
      * @param message the message as a String
      * @param viewPanel the panel to be rendered in as a JPanel
      */
-    private void sendMessage(Message message, JPanel viewPanel) {
+    public void sendMessage(Message message, JPanel viewPanel) {
         Random random = new Random();
         int rand = random.nextInt(2);
         Color colour = (rand == 1) ? ChatBubble.GREEN_BUBBLE : ChatBubble.BLUE_BUBBLE;

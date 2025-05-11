@@ -7,6 +7,8 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.IOException;
+import java.util.Date;
+import java.util.List;
 import java.util.Random;
 
 import javax.swing.*;
@@ -45,6 +47,14 @@ public class ChatPanel extends JPanel {
         // connect to the server
         connectToServer(viewPanel, scrollPane);
 
+        // get the chat history
+        List<Message> messageHistory = DatabaseManager.getAllMessages();
+
+        messageHistory.stream()
+                        .forEach((message) -> {
+                            clientConn.sendMessage(message, viewPanel);
+                        });
+
         // create the input panel
         JPanel inputPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         
@@ -59,13 +69,17 @@ public class ChatPanel extends JPanel {
             // sanitise the input
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
-            Message message = new Message(0,"username", 2, "00:00:00", messageText);
+                                            // randomly change the user id based on message denom, CHANGE THIS!!!!!!
+            Message message = new Message(messageText.length() % 2 == 0 ? 0 : 1,"username", 2, "00:00:00", messageText);
 
             // ensure the message exists and the server is connected
             if(!message.getMessage().isEmpty() && clientConn != null){
                 if(clientConn != null){
                     try{
+                        Date date = new Date();
+                        String timestamp = date.toString();
                         clientConn.send(message.getUsername(), message.getAvatarId(), messageText);
+                        DatabaseHelper.saveMessage(message.getUserId(), messageText, timestamp);
                         textField.setText("");   
                     }      
                     catch(NullPointerException e){
@@ -101,13 +115,17 @@ public class ChatPanel extends JPanel {
             String messageText = textField.getText();
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
-            Message message = new Message(0,"username", 2, "00:00:00", messageText);
+                                            // randomly change the user id based on message denom, CHANGE THIS!!!!!!
+            Message message = new Message(messageText.length() % 2 == 0 ? 0 : 1,"username", 2, "00:00:00", messageText);
 
             // ensure the message exists and the server is connected
             if(!message.getMessage().isEmpty() && clientConn != null){
                 if(clientConn != null){
                     try{
+                        Date date = new Date();
+                        String timestamp = date.toString();
                         clientConn.send(message.getUsername(), message.getAvatarId(), messageText);
+                        DatabaseHelper.saveMessage(message.getUserId(), messageText, timestamp);
                         textField.setText("");   
                     }      
                     catch(NullPointerException e){
@@ -132,7 +150,7 @@ public class ChatPanel extends JPanel {
                 // notify the user that the connection is down
                 showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
                 reconnectToServer(viewPanel, scrollPane);
-            }            
+            }           
         });
 
         inputPanel.add(textField);
