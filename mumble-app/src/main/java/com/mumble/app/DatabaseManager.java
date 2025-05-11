@@ -21,24 +21,6 @@ public class DatabaseManager{
     }
 
     /**
-     * Saves messages to the database
-     * @param message the message to be saved as a Message object
-     */
-    public static void saveMessage(Message message){
-        String sql = "INSERT INTO messages (user_id, message, timestamp) VALUES (?, ?, ?)";
-
-        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
-            pstmt.setInt(1, message.getUserId());
-            pstmt.setString(2, message.getMessage());
-            pstmt.setString(3, message.getTimestamp());
-            pstmt.executeUpdate();
-        }
-        catch(SQLException e){
-            e.printStackTrace();
-        }
-    }
-
-    /**
      * Retrieves all messages in the database
      * @return
      */
@@ -46,7 +28,7 @@ public class DatabaseManager{
         String sql = "SELECT * FROM messages ORDER BY timestamp DESC";
         List<Message> messages = new ArrayList<>();
 
-        try(Connection conn = DatabaseHelper.connect(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)){
+        try(Connection conn = getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)){
             while(rs.next()){
                 int id = rs.getInt("user_id");
                 String message = rs.getString("message");
@@ -70,7 +52,7 @@ public class DatabaseManager{
     public static boolean doesEmailExist(String email){
         String sql = "SELECT 1 from users WHERE email = ?";
 
-        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+        try(Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)){
             pstmt.setString(1, email);
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()){
@@ -92,7 +74,7 @@ public class DatabaseManager{
     public static int getUserId(String username, String password){
         String sql = "SELECT id FROM users WHERE username = ?";
 
-        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+        try(Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)){
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()){
@@ -114,7 +96,7 @@ public class DatabaseManager{
     public static String getPassword(String username){
         String sql = "SELECT password from users WHERE username = ?";
 
-        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+        try(Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)){
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()){
@@ -136,7 +118,7 @@ public class DatabaseManager{
     public static boolean usernameExists(String username){
         String sql = "SELECT 1 FROM users WHERE username = ?";
 
-        try(Connection conn = DatabaseHelper.connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+        try(Connection conn = getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)){
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
             return rs.next();

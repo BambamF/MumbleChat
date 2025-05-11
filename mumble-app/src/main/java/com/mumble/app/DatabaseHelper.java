@@ -71,21 +71,6 @@ public class DatabaseHelper {
         }
     }
 
-    // connect to the database and save the data safely using prepared statements
-    public static void saveMessage(int id, String message){
-        String sql = "INSERT INTO messages(user_id, message) VALUES(?, ?)";
-
-        try(Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
-            pstmt.setInt(1, id);
-            pstmt.setString(2, message);
-            pstmt.executeUpdate();
-            System.out.println("Message saved!");
-        }
-        catch(SQLException e){
-            e.printStackTrace();
-        }
-    }
-
     /**
      * Retrieves the chat history from the database
      */
