@@ -5,7 +5,6 @@ import javax.swing.*;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.awt.*;
-import java.io.Serializable;
 import java.util.Arrays;
 
 
