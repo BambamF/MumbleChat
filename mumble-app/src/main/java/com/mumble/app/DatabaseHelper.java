@@ -2,14 +2,23 @@ package com.mumble.app;
 
 import java.sql.*;
 
+/**
+ * A DatabaseHelper provides methods to create database schema, save users, save messages and retrieve messages
+ */
 public class DatabaseHelper {
     
-    // method to establish the connection
+    /**
+     * Establishes the connection via the DatabaseManager
+     * @return the Connection object
+     * @throws SQLException if the connection request fails
+     */
     public static Connection connect() throws SQLException{
         return DatabaseManager.getConnection();
     }
 
-    // method to create the database schema
+    /**
+     * Creates the database schema for users and messages
+     */
     public static void createSchema(){
         String createUserTable = "CREATE TABLE IF NOT EXISTS users( " +
                                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " + 
@@ -25,6 +34,7 @@ public class DatabaseHelper {
                                     "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " + 
                                     "FOREIGN KEY (user_id) REFERENCES users(id))";
 
+        // connect to the database and create the tables using sql statements                            
         try(Connection conn = connect(); Statement stmt = conn.createStatement()){
             stmt.execute(createUserTable);
             stmt.execute(createMessageTable);
@@ -35,10 +45,18 @@ public class DatabaseHelper {
         }
     }
 
-    // method to save a user to the database
+    /**
+     * Saves the user to the database
+     * @param username the username as a String
+     * @param password the password as a hashed String
+     * @param email the email address as a String
+     * @param phone the phone number as a String
+     * @param timestamp the timestamp as a String
+     */
     public static void saveUser(String username, String password, String email, String phone, String timestamp){
         String sql = "INSERT INTO users(username, password, email, phone, timestamp) VALUES(?, ?, ?, ?, ?)";
 
+        // connect to the database and save the data safely using prepared statements
         try(Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
             pstmt.setString(1, username);
             pstmt.setString(2, password);
@@ -53,6 +71,7 @@ public class DatabaseHelper {
         }
     }
 
+    // connect to the database and save the data safely using prepared statements
     public static void saveMessage(int id, String message){
         String sql = "INSERT INTO messages(user_id, message) VALUES(?, ?)";
 
@@ -67,7 +86,9 @@ public class DatabaseHelper {
         }
     }
 
-    // method to get the chat history
+    /**
+     * Retrieves the chat history from the database
+     */
     public static void getChatHistory(){
         String sql = "SELECT u.username, m.message, m.timestamp FROM messages WITH m" +
                     "JOIN users u ON m.user_id = u.id ORDER BY m.timestamp";

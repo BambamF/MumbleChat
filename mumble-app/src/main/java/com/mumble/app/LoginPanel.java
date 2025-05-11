@@ -8,10 +8,18 @@ import java.awt.*;
 import java.io.Serializable;
 import java.util.Arrays;
 
+
+/**
+ * A LoginPanel creates and renders a login page with fields for user input
+ */
 public class LoginPanel extends JPanel {
     
     private MumbleApp app;
 
+    /**
+     * Instantiates and renders the login page
+     * @param a the MumbleApp object that has the main thread
+     */
     public LoginPanel(MumbleApp a) {
 
         this.app = a;

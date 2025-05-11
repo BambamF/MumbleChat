@@ -3,6 +3,9 @@ package com.mumble.app;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * A MumbleApp launches the chat GUI
+ */
 public class MumbleApp extends JFrame {
     
     private static CardLayout cardLayout;
@@ -10,11 +13,15 @@ public class MumbleApp extends JFrame {
     public static final int COLUMN_WIDTH = 20;
     private int userId;
 
+    /**
+     * Instantiates the chat GUI
+     */
     public MumbleApp(){
         super("MumbleApp");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 750);
 
+        // creates the database user and message schema
         DatabaseHelper.createSchema();
 
         // card layout to switch pages
@@ -41,14 +48,23 @@ public class MumbleApp extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * Changes the view to the chat page
+     */
     public static void showChatPage(){
         cardLayout.show(mainPanel, "chat");
     }
 
+    /**
+     * Changes the view to the login page
+     */    
     public static void showLoginPage(){
         cardLayout.show(mainPanel, "login");
     }
 
+    /**
+     * Changes the view to the create account page
+     */    
     public static void showCreateAccountPage(){
         cardLayout.show(mainPanel, "create-account");
     }

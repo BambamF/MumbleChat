@@ -3,6 +3,9 @@ package com.mumble.app;
 import javax.swing.*;
 import java.awt.*;
 
+/**
+ * A ScrollablePanel provides overriden methods with scrollable interactions
+ */
 public class ScrollablePanel extends JPanel implements Scrollable {
 
     public ScrollablePanel() {

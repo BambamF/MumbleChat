@@ -4,6 +4,9 @@ import java.awt.*;
 import javax.swing.*;
 import javax.swing.border.Border;
 
+/**
+ * This class provides methods to create a chat bubble and render it on the screen
+ */
 public class ChatBubble extends JPanel {
 
     public static final Color GREEN_BUBBLE = new Color(95, 252, 123);
@@ -14,6 +17,13 @@ public class ChatBubble extends JPanel {
     private final String username;
     private final int avatar_id;
 
+    /**
+     * Initialises the chat bubble with a given colour, arc, username and avatar Id
+     * @param c the colour to which the bubble should be assigned as a Color object
+     * @param a the arc to which the bubble should be assigned as an int
+     * @param u the username as a String
+     * @param aId the avatar ID as an int
+     */
     public ChatBubble(Color c, int a, String u, int aId){
         this.backgroundColor = c;
         this.arc = a;
@@ -26,6 +36,10 @@ public class ChatBubble extends JPanel {
         setAlignmentX(Component.LEFT_ALIGNMENT);
     }
 
+    /**
+     * Renders the chat bubble on the screen
+     * @param g the graphics object to be used in the render
+     */
     @Override
     public void paintComponent(Graphics g){
         super.paintComponent(g);
@@ -36,14 +50,26 @@ public class ChatBubble extends JPanel {
         g2.dispose();
     }
 
+    /**
+     * Returns the username as a String
+     * @return the username as a String
+     */
     private String getUsername(){
         return this.username;
     }
 
+    /**
+     * Returns the avatar ID as an int
+     * @return the avatar ID as an int
+     */
     private int getAvatarId(){
         return this.avatar_id;
     }
 
+    /**
+     * Adds the message bubble to the chat and render it on the screen
+     * @param message the message to be rendered as a Message object
+     */
     public void addMessage(Message message){
         int maxTextWidth = 280;
         JTextArea text = new JTextArea(message.getMessage());

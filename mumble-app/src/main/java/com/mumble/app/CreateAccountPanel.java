@@ -10,6 +10,9 @@ import org.springframework.security.crypto.bcrypt.*;
 
 import java.awt.*;
 
+/**
+ * A CreateAccountPanel provides methods for user form validation and registration
+ */
 public class CreateAccountPanel extends JPanel{
 
     private final JTextField unameField = new JTextField(15);
@@ -25,10 +28,11 @@ public class CreateAccountPanel extends JPanel{
 
     private MumbleApp app;
     
+    /**
+     * Instantiates the CreateAccountPanel
+     * @param a the MumbleApp with the main thread
+     */
     public CreateAccountPanel(MumbleApp a){
-
-
-
 
         super(new BorderLayout());
         this.app = a;
@@ -81,14 +85,29 @@ public class CreateAccountPanel extends JPanel{
         this.add(inputPanel, BorderLayout.CENTER);
 
         signUpButton.addActionListener((ae) -> {
+
+            // change the view to the chat page
             if(submitForm()) MumbleApp.showChatPage();
+
         });
 
         loginButton.addActionListener((ae) -> {
+
+            // change the view to the login page
             MumbleApp.showLoginPage();
+
         });
     }
 
+    /**
+     * Adds fields to the given panel using the given gridbag constraints
+     * @param panel the panel the fields will be added to as a JPanel
+     * @param gbc the gridbag constraints for the layout
+     * @param row the row as an int
+     * @param label the field label as a String
+     * @param input the input as a JComponent
+     * @param errorLabel the error message as a JLabel
+     */
     private void addField(JPanel panel, GridBagConstraints gbc, int row, String label, JComponent input, JLabel errorLabel){
 
         // Label
@@ -111,6 +130,10 @@ public class CreateAccountPanel extends JPanel{
         }
     }
 
+    /**
+     * Submit the form and save the user to the database
+     * @return whether the form was saved as a boolean
+     */
     private boolean submitForm(){
 
         String unameText = unameField.getText();
@@ -212,6 +235,11 @@ public class CreateAccountPanel extends JPanel{
         return true;
     }
 
+    /**
+     * Returns the hash of the password as a String
+     * @param password the password the be hashed as a character array
+     * @return the password hash as a String
+     */
     private String hashPassword(char[] password) {
         return BCrypt.hashpw(new String(password), BCrypt.gensalt(12));
     }

@@ -11,12 +11,19 @@ import java.util.Random;
 
 import javax.swing.*;
 
+/**
+ * A Chat Panel provides methods to send messages, save messages and render chat bubbles on to the screen
+ */
 public class ChatPanel extends JPanel {
 
     private static final Color GREEN_BUBBLE = new Color(95, 252, 123);
     private static final Color BLUE_BUBBLE = new Color(0, 120, 254);
     private ChatClientConnection clientConn;
     
+    /**
+     * Initialises and renders the chat panel 
+     * @param a the MumbleApp object with the main thread
+     */
     public ChatPanel(MumbleApp a){
         super(new BorderLayout());
 
@@ -29,6 +36,7 @@ public class ChatPanel extends JPanel {
         // make the view panel scrollable
         JScrollPane scrollPane = new JScrollPane(viewPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);  
+
         // Ensure the scrollPane fills space
         scrollPane.setViewportView(viewPanel);
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
@@ -47,9 +55,13 @@ public class ChatPanel extends JPanel {
         // set the action listener
         textField.addActionListener((ae) -> {
             String messageText = textField.getText();
+
+            // sanitise the input
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
             Message message = new Message(0,"username", 2, "00:00:00", messageText);
+
+            // ensure the message exists and the server is connected
             if(!message.getMessage().isEmpty() && clientConn != null){
                 if(clientConn != null){
                     try{
@@ -59,17 +71,23 @@ public class ChatPanel extends JPanel {
                     catch(NullPointerException e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
+
+                        // retry the connection
                         reconnectToServer(viewPanel, scrollPane);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
+
+                        // retry the connection
                         reconnectToServer(viewPanel, scrollPane);
                     }    
                 }
      
             }
             else{
+
+                // notify the user that the connection is down
                 showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
                 reconnectToServer(viewPanel, scrollPane);
             }
@@ -84,6 +102,8 @@ public class ChatPanel extends JPanel {
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
             Message message = new Message(0,"username", 2, "00:00:00", messageText);
+
+            // ensure the message exists and the server is connected
             if(!message.getMessage().isEmpty() && clientConn != null){
                 if(clientConn != null){
                     try{
@@ -93,16 +113,26 @@ public class ChatPanel extends JPanel {
                     catch(NullPointerException e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
+
+                        // retry the connection
                         reconnectToServer(viewPanel, scrollPane);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
+
+                        // retry the connection
                         reconnectToServer(viewPanel, scrollPane);
                     }    
                 }
      
             }
+            else{
+
+                // notify the user that the connection is down
+                showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
+                reconnectToServer(viewPanel, scrollPane);
+            }            
         });
 
         inputPanel.add(textField);
@@ -118,6 +148,11 @@ public class ChatPanel extends JPanel {
         
     }
 
+    /**
+     * Activates the connection to the server via a ChatClientConnection
+     * @param viewPanel the view panel as a JPanel
+     * @param scrollPane the scrollpane as a JScrollPane
+     */
     private void connectToServer(JPanel viewPanel, JScrollPane scrollPane){
         try{
             clientConn = new ChatClientConnection("localhost", ChatServer.PORT, viewPanel, scrollPane);
@@ -126,15 +161,24 @@ public class ChatPanel extends JPanel {
         catch(IOException e){
             System.err.println("Chat client connection failed");
             showMessage( "Connection to server unsuccessful, retrying....", viewPanel, scrollPane);
+
+            // retry if the connection failed
             reconnectToServer(viewPanel, scrollPane);
             e.printStackTrace();
         }
     }
 
+    /**
+     * Adds a label to the chat panel to notify the user
+     * @param message the notification message as a String
+     * @param viewPanel the view panel as a JPanel
+     * @param scrollPane the scrollpane as a JScrollPane
+     */
     private void showMessage(String message, JPanel viewPanel, JScrollPane scrollPane){
 
+        // wrap the message label in a new panel to control layout
         JPanel wrapper = new JPanel(new BorderLayout());
-        JLabel messageLabel = new JLabel("message");
+        JLabel messageLabel = new JLabel(message);
 
         messageLabel.setFont(new Font("SansSerif", Font.PLAIN, 10));
         messageLabel.setForeground(Color.GRAY);
@@ -145,13 +189,18 @@ public class ChatPanel extends JPanel {
         viewPanel.revalidate();
         viewPanel.repaint();
 
-        // Scroll to bottom
+        // scroll to bottom
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = ((JScrollPane) this.getComponent(0)).getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
     }
 
+    /**
+     * Reconnect to the server after a failed connection attempt
+     * @param viewPanel the view panel as a JPanel
+     * @param scrollPane the scrollpane as a JScrollPane
+     */
     private void reconnectToServer(JPanel viewPanel, JScrollPane scrollPane){
         Timer timer = new Timer(3000, e -> connectToServer(viewPanel, scrollPane) );
         timer.setRepeats(false);
