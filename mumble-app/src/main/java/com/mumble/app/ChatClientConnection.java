@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.security.PublicKey;
 import java.util.Random;
 
 import javax.swing.JPanel;
@@ -71,9 +72,14 @@ public class ChatClientConnection implements Runnable{
                 // make sure the entry is in the right format
                 if(parts.length >= 3){
 
+                    // extract the parts of the message
                     String username = parts[0];
                     int avatarId = Integer.parseInt(parts[1]);
                     String message = parts[2];
+
+                    // decrypt the message 
+                    
+
                     Message finalMessage = new Message(0, username, avatarId, "00:00:00", message);
 
                     // renders the message to the screen
@@ -99,8 +105,35 @@ public class ChatClientConnection implements Runnable{
      * @param message the message as a String
      */
     public void send(String username, int aId, String message){
-        String finalMessage = username + "::" + aId + "::" + message;
-        out.println(finalMessage);
+        try{
+
+            PublicKey recipientKey = CryptoUtils.getPublicKeyByUsername(username);
+
+            if(recipientKey == null){
+                System.err.println("Public key not found for: " + username);
+                return;
+            }
+
+            String encryptedBase64 = CryptoUtils.encryptToBase64(message, recipientKey);
+
+            String finalMessage = username + "::" + aId + "::" + encryptedBase64;
+            out.println(finalMessage);
+            out.flush();
+            
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Sends a login code for a user object
+     * @param loginCode the login code as a String
+     * @param username the username as a String
+     */
+    public void send(String loginCode, String username){
+        String loginMessage = loginCode + "::" + username + "::" + "NO_MESSAGE";
+        out.println(loginMessage);
         out.flush();
     }
 

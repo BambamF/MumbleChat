@@ -9,6 +9,9 @@ import javax.swing.border.LineBorder;
 import org.springframework.security.crypto.bcrypt.*;
 
 import java.awt.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.security.*;
 
 /**
  * A CreateAccountPanel provides methods for user form validation and registration
@@ -216,9 +219,38 @@ public class CreateAccountPanel extends JPanel{
         String pwHash = hashPassword(password);
 
         String phoneNumber = (phoneText.isEmpty()) ? null : phoneText;
+    
+        boolean isRegistered = false;
 
-        // save the user details to the database
-        DatabaseHelper.saveUser(unameText, pwHash, emailText, phoneNumber, dateText);
+        try{
+            KeyPair rsaKeyPair = CryptoUtils.generateRSAKeyPair();
+
+            PublicKey publicKey = rsaKeyPair.getPublic();
+            PrivateKey privateKey = rsaKeyPair.getPrivate();
+
+            // save the public key to the db as a base64 string 
+            String pk = CryptoUtils.encodeKey(publicKey);
+
+            // save the user details to the database
+            DatabaseHelper.saveUser(unameText, pwHash, emailText, phoneNumber, pk, dateText);  
+
+            int userId = DatabaseManager.getUserId(unameText, pwHash);
+
+            // save the private key to a disk file
+            try(FileOutputStream fos = new FileOutputStream("keys/user" + userId + "_private.key")){
+                fos.write(privateKey.getEncoded());
+            }
+            catch(IOException e){
+                e.printStackTrace();
+            }
+            
+            isRegistered = true;
+        }
+        catch(NoSuchAlgorithmException e){
+            e.printStackTrace();
+        }
+
+
         
 
         Arrays.fill(password, '0');
@@ -230,9 +262,9 @@ public class CreateAccountPanel extends JPanel{
         passwordField.setText("");
         confirmPasswordField.setText("");  
         
-        System.out.println("Account created successfully!");
+        if(isRegistered) System.out.println("Account created successfully!");
 
-        return true;
+        return isRegistered;
     }
 
     /**

@@ -14,14 +14,16 @@ import java.util.Arrays;
 public class LoginPanel extends JPanel {
     
     private MumbleApp app;
+    private ChatClientConnection chatConnection;
 
     /**
      * Instantiates and renders the login page
      * @param a the MumbleApp object that has the main thread
      */
-    public LoginPanel(MumbleApp a) {
+    public LoginPanel(MumbleApp a, ChatClientConnection cConn) {
 
         this.app = a;
+        this.chatConnection = cConn;
         setLayout(new BorderLayout());
     
         JTextField usernameField = new JTextField(15);
@@ -103,6 +105,10 @@ public class LoginPanel extends JPanel {
                 }
             }
             Arrays.fill(password, '0');
+
+            // send loginCode to the chatClientConnection
+            cConn.send("LOGIN", username);
+
         });
     
         createAccountButton.addActionListener((ae) -> {

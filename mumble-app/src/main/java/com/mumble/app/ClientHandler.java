@@ -17,6 +17,7 @@ public class ClientHandler implements Runnable{
     private List<ClientHandler> clients;
     private BufferedReader in;
     private PrintWriter out;
+    private User user;
 
     /**
      * Instantiates the client handler
@@ -36,6 +37,12 @@ public class ClientHandler implements Runnable{
             out = new PrintWriter(socket.getOutputStream(), true);
             String msg;
             while((msg = in.readLine()) != null){
+
+                // associate login messages with a new user
+                if(msg.split("::")[0].equals("LOGIN")){
+                    setUser(new User(msg.split("::")[1], 0));
+                }
+
                 System.out.println("Message received: " + msg);
                 broadcast(msg);
             }
@@ -69,4 +76,21 @@ public class ClientHandler implements Runnable{
             client.out.flush();
         }
     }
+
+    /**
+     * Returns the user object
+     * @return the user object
+     */
+    public User getUser(){
+        return this.user;
+    }
+
+    /**
+     * Sets the user object
+     * @param u the user object to be set
+     */
+    public void setUser(User u){
+        this.user = u;
+    }
+
 }

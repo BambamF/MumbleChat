@@ -27,7 +27,8 @@ public class DatabaseHelper {
                                     "username TEXT NOT NULL UNIQUE, " +
                                     "email TEXT NOT NULL UNIQUE, " +
                                     "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                                    "phone TEXT," +
+                                    "phone TEXT, " +
+                                    "public_key TEXT, " +
                                     "password TEXT NOT NULL);";
 
         String createMessageTable = "CREATE TABLE IF NOT EXISTS messages(" + 
@@ -59,8 +60,8 @@ public class DatabaseHelper {
      * @param phone the phone number as a String
      * @param timestamp the timestamp as a String
      */
-    public static void saveUser(String username, String password, String email, String phone, String timestamp){
-        String sql = "INSERT INTO users(username, password, email, phone, timestamp) VALUES(?, ?, ?, ?, ?)";
+    public static void saveUser(String username, String password, String email, String phone, String publicKey,String timestamp){
+        String sql = "INSERT INTO users(username, password, email, phone, public_key, timestamp) VALUES(?, ?, ?, ?, ?, ?)";
 
         // connect to the database and save the data safely using prepared statements
         try(Connection conn = connect(); 
@@ -70,7 +71,8 @@ public class DatabaseHelper {
             pstmt.setString(2, password);
             pstmt.setString(3, email);
             pstmt.setString(4, phone);
-            pstmt.setString(5, timestamp);
+            pstmt.setString(5, publicKey);
+            pstmt.setString(6, timestamp);
             pstmt.executeUpdate();
             System.out.println("User saved!");
             
