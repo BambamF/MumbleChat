@@ -23,13 +23,16 @@ public class ChatPanel extends JPanel {
     private JPanel viewPanel;
     private JScrollPane scrollPane;
     private ChatClientConnection clientConn;
+    private User user;
     
     /**
      * Initialises and renders the chat panel 
      * @param a the MumbleApp object with the main thread
      */
-    public ChatPanel(MumbleApp a, ChatClientConnection conn){
+    public ChatPanel(MumbleApp a, ChatClientConnection conn, User u){
         super(new BorderLayout());
+
+        this.user = u;
 
         // create the view panel
         viewPanel = new ScrollablePanel();
@@ -50,7 +53,7 @@ public class ChatPanel extends JPanel {
         this.clientConn = conn;
 
         // connect to the server
-        MumbleApp.connectToServer(viewPanel, scrollPane);
+        MumbleApp.connectToServer(viewPanel, scrollPane, user);
 
         // get the chat history
         List<Message> messageHistory = DatabaseManager.getAllMessages();
@@ -92,14 +95,14 @@ public class ChatPanel extends JPanel {
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
                     }    
                 }
      
@@ -108,7 +111,7 @@ public class ChatPanel extends JPanel {
 
                 // notify the user that the connection is down
                 showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
-                MumbleApp.reconnectToServer(viewPanel, scrollPane);
+                MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
             }
 
         });
@@ -140,14 +143,14 @@ public class ChatPanel extends JPanel {
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
                     }    
                 }
      
@@ -156,7 +159,7 @@ public class ChatPanel extends JPanel {
 
                 // notify the user that the connection is down
                 showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
-                MumbleApp.reconnectToServer(viewPanel, scrollPane);
+                MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
             }       
         });
 

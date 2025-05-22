@@ -106,8 +106,10 @@ public class LoginPanel extends JPanel {
             }
             Arrays.fill(password, '0');
 
-            // send loginCode to the chatClientConnection
+            // send loginCode to the chatClientConnection, this sets the User object with the users username
             cConn.send("LOGIN", username);
+            User user = new User(username, 0);
+            app.setUser(username);
 
         });
     

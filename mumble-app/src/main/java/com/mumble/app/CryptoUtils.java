@@ -1,6 +1,9 @@
 package com.mumble.app;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -58,6 +61,20 @@ public class CryptoUtils {
 
         // genetate a public key using the X.509 encoded specification
         return KeyFactory.getInstance("RSA").generatePublic(spec);  // KeyFactory converts the KeySpec into a usable key
+    }
+
+    /**
+     * Loads a private key from disk
+     * @param username the username associated with the private key file
+     * @return the private key reconstructed using the PKCS8 standard
+     * @throws Exception
+     */
+    public static PrivateKey loadPrivateKey(String username) throws Exception{
+        Path path = Paths.get("keys", "private_" + username + ".key");
+        byte[] keyBytes = Files.readAllBytes(path);
+        PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePrivate(spec);
     }
 
     /**
@@ -131,6 +148,15 @@ public class CryptoUtils {
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
-    
+    public static byte[] decryptMessage(String message, PrivateKey pk) throws Exception{
+
+        // decode the message into a byte array
+        byte[] decodedBytes = Base64.getDecoder().decode(message);
+
+        // use a cipher to decrypy the message
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, pk);
+        return cipher.doFinal(decodedBytes);
+    }
 
 }

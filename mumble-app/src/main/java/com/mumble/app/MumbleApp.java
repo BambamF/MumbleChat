@@ -14,6 +14,7 @@ public class MumbleApp extends JFrame {
     public static final int COLUMN_WIDTH = 20;
     private int userId;
     private static ChatClientConnection clientConn;
+    private User user;
 
     /**
      * Instantiates the chat GUI
@@ -24,8 +25,8 @@ public class MumbleApp extends JFrame {
         setSize(1000, 750);
 
         // creates the database user and message schema
-        DatabaseHelper.createSchema();
-        // DatabaseHelper.resetMessagesTable();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
+        // DatabaseHelper.createSchema();
+        DatabaseHelper.resetMessagesTable();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
 
         // card layout to switch pages
         cardLayout = new CardLayout();
@@ -33,7 +34,7 @@ public class MumbleApp extends JFrame {
 
         // create pages
         LoginPanel loginPanel = new LoginPanel(this, clientConn);
-        ChatPanel chatPanel = new ChatPanel(this, clientConn);
+        ChatPanel chatPanel = new ChatPanel(this, clientConn, user);
         CreateAccountPanel createAccountPanel = new CreateAccountPanel(this);
 
         // add the pages to the mainPanel
@@ -77,9 +78,9 @@ public class MumbleApp extends JFrame {
      * @param viewPanel the view panel as a JPanel
      * @param scrollPane the scrollpane as a JScrollPane
      */
-    public static void connectToServer(JPanel viewPanel, JScrollPane scrollPane){
+    public static void connectToServer(JPanel viewPanel, JScrollPane scrollPane, User user){
         try{
-            clientConn = new ChatClientConnection("localhost", ChatServer.PORT, viewPanel, scrollPane);
+            clientConn = new ChatClientConnection("localhost", ChatServer.PORT, viewPanel, scrollPane, user);
             System.out.println("Chat client connection established");
         }
         catch(IOException e){
@@ -87,7 +88,7 @@ public class MumbleApp extends JFrame {
             showMessage( "Connection to server unsuccessful, retrying....", viewPanel, scrollPane);
 
             // retry if the connection failed
-            reconnectToServer(viewPanel, scrollPane);
+            reconnectToServer(viewPanel, scrollPane, user);
             e.printStackTrace();
         }
     }
@@ -97,8 +98,8 @@ public class MumbleApp extends JFrame {
      * @param viewPanel the view panel as a JPanel
      * @param scrollPane the scrollpane as a JScrollPane
      */
-    public static void reconnectToServer(JPanel viewPanel, JScrollPane scrollPane){
-        Timer timer = new Timer(3000, e -> connectToServer(viewPanel, scrollPane) );
+    public static void reconnectToServer(JPanel viewPanel, JScrollPane scrollPane, User user){
+        Timer timer = new Timer(3000, e -> connectToServer(viewPanel, scrollPane, user) );
         timer.setRepeats(false);
         timer.start();
     }
@@ -129,6 +130,14 @@ public class MumbleApp extends JFrame {
             JScrollBar vertical = ((JScrollPane) scrollPane.getComponent(0)).getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
+    }
+
+    /**
+     * Sets the user object after sign in
+     * @param username the username to be used as a String
+     */
+    public void setUser(String username){
+        this.user = new User(username, 0);
     }
 
     public static void main(String[] args) {

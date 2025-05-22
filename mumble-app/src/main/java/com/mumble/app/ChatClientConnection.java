@@ -9,9 +9,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.Random;
 
+import javax.crypto.Cipher;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
@@ -26,6 +29,7 @@ public class ChatClientConnection implements Runnable{
     private JScrollPane scrollPane;
     private BufferedReader in;
     private PrintWriter out;
+    private User user;
 
     /**
      * Initialises the ChatClientConnection with a host name and port number, also takes in the chat windows view panel
@@ -36,12 +40,13 @@ public class ChatClientConnection implements Runnable{
      * @param sp the associated scroll pane as a JScrollPane
      * @throws IOException throws an IOException if socket connection fails
      */
-    public ChatClientConnection(String host, int port, JPanel vp, JScrollPane sp) throws IOException{
+    public ChatClientConnection(String host, int port, JPanel vp, JScrollPane sp, User u) throws IOException{
         
         // initialise the socket with the host and the port, along with the view and scroll panels
         this.socket = new Socket(host, port);
         this.viewPanel = vp;
         this.scrollPane = sp;
+        this.user = u;
 
         
         // initialise the out field with the socket output stream, using a print writer
@@ -76,11 +81,26 @@ public class ChatClientConnection implements Runnable{
                     String username = parts[0];
                     int avatarId = Integer.parseInt(parts[1]);
                     String message = parts[2];
+                    String decryptedMessage;
 
                     // decrypt the message 
-                    
+                    try{
 
-                    Message finalMessage = new Message(0, username, avatarId, "00:00:00", message);
+                        // load the private key
+                        PrivateKey privateKey = CryptoUtils.loadPrivateKey(user.getUsername());
+
+                        // decrypt the message
+                        byte[] decryptedBytes = CryptoUtils.decryptMessage(message, privateKey);
+
+                        // set the final message as a string
+                        decryptedMessage = new String(decryptedBytes);
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                        decryptedMessage = "Message decryption failed";
+                    }
+
+                    Message finalMessage = new Message(0, username, avatarId, "00:00:00", decryptedMessage);
 
                     // renders the message to the screen
                     SwingUtilities.invokeLater(() -> {
