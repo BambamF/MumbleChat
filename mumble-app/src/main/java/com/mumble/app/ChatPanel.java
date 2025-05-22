@@ -20,23 +20,25 @@ public class ChatPanel extends JPanel {
 
     private static final Color GREEN_BUBBLE = new Color(95, 252, 123);
     private static final Color BLUE_BUBBLE = new Color(0, 120, 254);
+    private JPanel viewPanel;
+    private JScrollPane scrollPane;
     private ChatClientConnection clientConn;
     
     /**
      * Initialises and renders the chat panel 
      * @param a the MumbleApp object with the main thread
      */
-    public ChatPanel(MumbleApp a){
+    public ChatPanel(MumbleApp a, ChatClientConnection conn){
         super(new BorderLayout());
 
         // create the view panel
-        JPanel viewPanel = new ScrollablePanel();
+        viewPanel = new ScrollablePanel();
         viewPanel.setLayout(new BoxLayout(viewPanel, BoxLayout.Y_AXIS));
         viewPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         viewPanel.setBackground(Color.WHITE);
 
         // make the view panel scrollable
-        JScrollPane scrollPane = new JScrollPane(viewPanel);
+        scrollPane = new JScrollPane(viewPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);  
 
         // Ensure the scrollPane fills space
@@ -44,8 +46,11 @@ public class ChatPanel extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
 
+        // set the client connection
+        this.clientConn = conn;
+
         // connect to the server
-        connectToServer(viewPanel, scrollPane);
+        MumbleApp.connectToServer(viewPanel, scrollPane);
 
         // get the chat history
         List<Message> messageHistory = DatabaseManager.getAllMessages();
@@ -87,14 +92,14 @@ public class ChatPanel extends JPanel {
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
                     }    
                 }
      
@@ -103,7 +108,7 @@ public class ChatPanel extends JPanel {
 
                 // notify the user that the connection is down
                 showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
-                reconnectToServer(viewPanel, scrollPane);
+                MumbleApp.reconnectToServer(viewPanel, scrollPane);
             }
 
         });
@@ -113,6 +118,8 @@ public class ChatPanel extends JPanel {
 
         sendButton.addActionListener((ae) -> {
             String messageText = textField.getText();
+
+            // sanitise the input
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
                                             // randomly change the user id based on message denom, CHANGE THIS!!!!!!
@@ -133,14 +140,14 @@ public class ChatPanel extends JPanel {
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        reconnectToServer(viewPanel, scrollPane);
+                        MumbleApp.reconnectToServer(viewPanel, scrollPane);
                     }    
                 }
      
@@ -149,8 +156,8 @@ public class ChatPanel extends JPanel {
 
                 // notify the user that the connection is down
                 showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
-                reconnectToServer(viewPanel, scrollPane);
-            }           
+                MumbleApp.reconnectToServer(viewPanel, scrollPane);
+            }       
         });
 
         inputPanel.add(textField);
@@ -164,26 +171,6 @@ public class ChatPanel extends JPanel {
             vertical.setValue(vertical.getMaximum());
         });
         
-    }
-
-    /**
-     * Activates the connection to the server via a ChatClientConnection
-     * @param viewPanel the view panel as a JPanel
-     * @param scrollPane the scrollpane as a JScrollPane
-     */
-    private void connectToServer(JPanel viewPanel, JScrollPane scrollPane){
-        try{
-            clientConn = new ChatClientConnection("localhost", ChatServer.PORT, viewPanel, scrollPane);
-            System.out.println("Chat client connection established");
-        }
-        catch(IOException e){
-            System.err.println("Chat client connection failed");
-            showMessage( "Connection to server unsuccessful, retrying....", viewPanel, scrollPane);
-
-            // retry if the connection failed
-            reconnectToServer(viewPanel, scrollPane);
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -212,17 +199,6 @@ public class ChatPanel extends JPanel {
             JScrollBar vertical = ((JScrollPane) this.getComponent(0)).getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());
         });
-    }
-
-    /**
-     * Reconnect to the server after a failed connection attempt
-     * @param viewPanel the view panel as a JPanel
-     * @param scrollPane the scrollpane as a JScrollPane
-     */
-    private void reconnectToServer(JPanel viewPanel, JScrollPane scrollPane){
-        Timer timer = new Timer(3000, e -> connectToServer(viewPanel, scrollPane) );
-        timer.setRepeats(false);
-        timer.start();
     }
 
 

@@ -26,7 +26,7 @@ public class ChatServer implements Runnable{
             
             while(true){
 
-                // accept connection requests from client sockets
+                // accept connection request from client sockets
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client connected to server.");
 
