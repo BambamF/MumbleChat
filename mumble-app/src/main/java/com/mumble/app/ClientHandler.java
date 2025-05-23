@@ -40,10 +40,10 @@ public class ClientHandler implements Runnable{
 
                 // associate login messages with a new user
                 if(msg.split("::")[0].equals("LOGIN")){
-                    setUser(new User(msg.split("::")[1], 0));
+                    setUser(new User(msg.split("::")[1], 0, DatabaseManager.getUserId(msg.split("::")[1], DatabaseManager.getPassword(msg.split("::")[1]))));
                 }
 
-                System.out.println("Message received: " + msg);
+                //System.out.println("Message received: " + msg);
                 broadcast(msg);
             }
         }
@@ -66,14 +66,17 @@ public class ClientHandler implements Runnable{
      * Broadcasts the message to all clients in the client list via the socket output stream
      * @param msg the message to be broadcasted as a String
      */
-    private void broadcast(String msg){
-        for(ClientHandler client : clients){
-            
-            // send the message via the output stream
-            client.out.println(msg);
+    private void broadcast(String msg) {
+        String[] parts = msg.split("::");
+        if (parts.length < 1) return;
 
-            // flush the output stream after
-            client.out.flush();
+        String recipientUsername = parts[0];
+        for (ClientHandler client : clients) {
+            if (client.getUser() != null && client.getUser().getUsername().equals(recipientUsername)) {
+                client.out.println(msg);
+                client.out.flush();
+                break; // stop after sending to the right user
+            }
         }
     }
 

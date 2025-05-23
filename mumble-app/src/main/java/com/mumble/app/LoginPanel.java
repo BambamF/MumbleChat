@@ -20,10 +20,9 @@ public class LoginPanel extends JPanel {
      * Instantiates and renders the login page
      * @param a the MumbleApp object that has the main thread
      */
-    public LoginPanel(MumbleApp a, ChatClientConnection cConn) {
+    public LoginPanel(MumbleApp a) {
 
         this.app = a;
-        this.chatConnection = cConn;
         setLayout(new BorderLayout());
     
         JTextField usernameField = new JTextField(15);
@@ -89,9 +88,6 @@ public class LoginPanel extends JPanel {
 
             String pwFromDb = DatabaseManager.getPassword(username);
 
-            if(user_id != -1){
-                MumbleApp.showChatPage();
-            } else {
                 if(!DatabaseManager.usernameExists(username)){
                     JOptionPane.showMessageDialog(this, "username not found! please create an account");
                 }
@@ -101,15 +97,22 @@ public class LoginPanel extends JPanel {
                 else{
                     usernameField.setText("");
                     pwField.setText("");
-                    MumbleApp.showChatPage();
+                    int userId = DatabaseManager.getUserId(username, pwFromDb);
+                    // send loginCode to the chatClientConnection, this sets the User object with the users username
+                    app.setUser(username, userId);
+
+                    // construct ChatPanel *after* setting the user
+                    ChatPanel chatPanel = new ChatPanel(app);
+                    app.setChatPanel(chatPanel);  // add a method in MumbleApp to store this
+                    this.chatConnection = app.getClientConn();
+                    this.chatConnection.send("LOGIN", username);
+                    System.out.println("LoginPanel connection: " + this.chatConnection.toString());
+                    System.out.println("LoginPanel user: " + app.getUser().getUsername());
+                    app.showChatPage();
                 }
-            }
+            
             Arrays.fill(password, '0');
 
-            // send loginCode to the chatClientConnection, this sets the User object with the users username
-            cConn.send("LOGIN", username);
-            User user = new User(username, 0);
-            app.setUser(username);
 
         });
     

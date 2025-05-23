@@ -18,21 +18,22 @@ import javax.swing.*;
  */
 public class ChatPanel extends JPanel {
 
-    private static final Color GREEN_BUBBLE = new Color(95, 252, 123);
-    private static final Color BLUE_BUBBLE = new Color(0, 120, 254);
+    public static final Color GREEN_BUBBLE = new Color(95, 252, 123);
+    public static final Color BLUE_BUBBLE = new Color(0, 120, 254);
     private JPanel viewPanel;
     private JScrollPane scrollPane;
     private ChatClientConnection clientConn;
     private User user;
+    private MumbleApp app;
     
     /**
      * Initialises and renders the chat panel 
      * @param a the MumbleApp object with the main thread
      */
-    public ChatPanel(MumbleApp a, ChatClientConnection conn, User u){
+    public ChatPanel(MumbleApp a){
         super(new BorderLayout());
 
-        this.user = u;
+        this.app = a;
 
         // create the view panel
         viewPanel = new ScrollablePanel();
@@ -49,18 +50,21 @@ public class ChatPanel extends JPanel {
         scrollPane.getVerticalScrollBar().setUnitIncrement(16);
         add(scrollPane, BorderLayout.CENTER);
 
-        // set the client connection
-        this.clientConn = conn;
+        this.user = app.getUser();
+        System.out.println("ChatPanel user:" + this.user.getUsername());
+        app.connectToServer(viewPanel, scrollPane, this.user);
 
-        // connect to the server
-        MumbleApp.connectToServer(viewPanel, scrollPane, user);
+        // set the client connection
+        this.clientConn = app.getClientConn();
+
+        System.out.println("ChatPanel connection: " + this.clientConn.toString());
 
         // get the chat history
         List<Message> messageHistory = DatabaseManager.getAllMessages();
 
         messageHistory.stream()
                         .forEach((message) -> {
-                            clientConn.sendMessage(message, viewPanel);
+                            clientConn.renderMessage(message);
                         });
 
         // create the input panel
@@ -72,22 +76,28 @@ public class ChatPanel extends JPanel {
 
         // set the action listener
         textField.addActionListener((ae) -> {
-            String messageText = textField.getText();
+            String messageText = textField.getText().trim();
 
             // sanitise the input
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
-                                            // randomly change the user id based on message denom, CHANGE THIS!!!!!!
-            Message message = new Message(messageText.length() % 2 == 0 ? 0 : 1,"username", 2, "00:00:00", messageText);
+            System.out.println(messageText);
 
             // ensure the message exists and the server is connected
-            if(!message.getMessage().isEmpty() && clientConn != null){
-                if(clientConn != null){
+            if(!messageText.isEmpty() && clientConn != null){
                     try{
+
+                        String username = this.user.getUsername();
+            
+                        int avatarId = 2; // or load based on user
+
                         Date date = new Date();
                         String timestamp = date.toString();
-                        clientConn.send(message.getUsername(), message.getAvatarId(), messageText);
-                        DatabaseHelper.saveMessage(message.getUserId(), messageText, timestamp);
+
+                        Message message = new Message(username, avatarId, timestamp, messageText);
+                        clientConn.send(username, avatarId, messageText);
+                        System.out.println("chat panel message: " + messageText);
+                        DatabaseHelper.saveMessage(user.getUserId(), username, messageText, timestamp);
                         textField.setText("");   
                     }      
                     catch(NullPointerException e){
@@ -95,47 +105,50 @@ public class ChatPanel extends JPanel {
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
+                        app.reconnectToServer(viewPanel, scrollPane, user);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
+                        app.reconnectToServer(viewPanel, scrollPane, user);
                     }    
-                }
-     
+            }   
+            else if(clientConn == null){
+                System.err.println("client conn is null");
             }
             else{
-
-                // notify the user that the connection is down
-                showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
-                MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
+                System.err.println("textbox is empty");
             }
-
         });
 
         // create the send button
         JButton sendButton = new JButton("send");
 
         sendButton.addActionListener((ae) -> {
-            String messageText = textField.getText();
+            String messageText = textField.getText().trim();
 
             // sanitise the input
             messageText = InputSanitiser.sanitniseHtml(messageText);
 
-                                            // randomly change the user id based on message denom, CHANGE THIS!!!!!!
-            Message message = new Message(messageText.length() % 2 == 0 ? 0 : 1,"username", 2, "00:00:00", messageText);
+            System.out.println(messageText);
 
             // ensure the message exists and the server is connected
-            if(!message.getMessage().isEmpty() && clientConn != null){
-                if(clientConn != null){
+            if(!messageText.isEmpty() && clientConn != null){
                     try{
+
+                        String username = this.user.getUsername();
+            
+                        int avatarId = 2; // or load based on user
+
                         Date date = new Date();
                         String timestamp = date.toString();
-                        clientConn.send(message.getUsername(), message.getAvatarId(), messageText);
-                        DatabaseHelper.saveMessage(message.getUserId(), messageText, timestamp);
+
+                        Message message = new Message(username, avatarId, timestamp, messageText);
+                        clientConn.send(username, avatarId, messageText);
+                        System.out.println("chat panel message: " + messageText);
+                        DatabaseHelper.saveMessage(user.getUserId(), username, messageText, timestamp);
                         textField.setText("");   
                     }      
                     catch(NullPointerException e){
@@ -143,24 +156,22 @@ public class ChatPanel extends JPanel {
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
+                        app.reconnectToServer(viewPanel, scrollPane, user);
                     }      
                     catch(Exception e){
                         e.printStackTrace();
                         showMessage("Failed to send message. Reconnecting...", viewPanel, scrollPane);
 
                         // retry the connection
-                        MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
+                        app.reconnectToServer(viewPanel, scrollPane, user);
                     }    
-                }
-     
+            }     
+            else if(clientConn == null){
+                System.err.println("client conn is null");
             }
             else{
-
-                // notify the user that the connection is down
-                showMessage("Chat not connected, retrying...", viewPanel, scrollPane);
-                MumbleApp.reconnectToServer(viewPanel, scrollPane, user);
-            }       
+                System.err.println("textbox is empty");
+            }
         });
 
         inputPanel.add(textField);
@@ -204,5 +215,12 @@ public class ChatPanel extends JPanel {
         });
     }
 
+    public JPanel getViewPanel(){
+        return this.viewPanel;
+    }
+
+    public JScrollPane getScrollPane(){
+        return this.scrollPane;
+    }
 
 }

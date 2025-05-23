@@ -34,7 +34,7 @@ public class DatabaseManager{
                 String message = rs.getString("message");
                 String timestamp = rs.getString("timestamp");
 
-                messages.add(new Message(id, "username", 0, message, timestamp));
+                messages.add(new Message("username", 0, message, timestamp));
             }
         }
         catch(SQLException e){

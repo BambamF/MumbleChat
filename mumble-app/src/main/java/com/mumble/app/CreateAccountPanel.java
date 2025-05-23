@@ -28,6 +28,7 @@ public class CreateAccountPanel extends JPanel{
     private final JLabel emailError = new JLabel(" ");
     private final JLabel passwordError = new JLabel(" ");
     private final JLabel confirmPasswordError = new JLabel(" ");
+    private ChatClientConnection chatConnection;
 
     private MumbleApp app;
     
@@ -90,7 +91,12 @@ public class CreateAccountPanel extends JPanel{
         signUpButton.addActionListener((ae) -> {
 
             // change the view to the chat page
-            if(submitForm()) MumbleApp.showChatPage();
+            if(submitForm()) {
+                System.out.println("Changing to chat page");
+                System.out.println("CreateAccount connection: " + this.chatConnection.toString());
+                System.out.println("CreateAccount user: " + app.getUser().getUsername());
+                app.showChatPage();
+            }
 
         });
 
@@ -237,10 +243,16 @@ public class CreateAccountPanel extends JPanel{
             int userId = DatabaseManager.getUserId(unameText, pwHash);
 
             // save the private key to a disk file
-            try(FileOutputStream fos = new FileOutputStream("keys/user" + userId + "_private.key")){
-                fos.write(privateKey.getEncoded());
-            }
-            catch(IOException e){
+            try {
+                java.io.File keyDir = new java.io.File("keys");
+                if (!keyDir.exists()) {
+                    keyDir.mkdirs(); // create the directory if it doesn't exist
+                }
+
+                try (FileOutputStream fos = new FileOutputStream("keys/private_" + unameText + ".key")) {
+                    fos.write(privateKey.getEncoded());
+                }
+            } catch (IOException e) {
                 e.printStackTrace();
             }
             
@@ -263,6 +275,16 @@ public class CreateAccountPanel extends JPanel{
         confirmPasswordField.setText("");  
         
         if(isRegistered) System.out.println("Account created successfully!");
+
+        String pwFromDb = DatabaseManager.getPassword(unameText);
+        int userId = DatabaseManager.getUserId(unameText, pwFromDb);
+        // send loginCode to the chatClientConnection, this sets the User object with the users username
+        app.setUser(unameText, userId);
+        // construct ChatPanel *after* setting the user
+        ChatPanel chatPanel = new ChatPanel(app);
+        app.setChatPanel(chatPanel);  // add a method in MumbleApp to store this
+        this.chatConnection = app.getClientConn();
+        this.chatConnection.send("LOGIN", unameText);
 
         return isRegistered;
     }

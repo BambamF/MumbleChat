@@ -4,7 +4,6 @@ package com.mumble.app;
  * A Message to creates a user message
  */
 public class Message {
-    private final int user_id;
     private final String username;
     private final int avatar_id;
     private final String timestamp;
@@ -18,20 +17,11 @@ public class Message {
      * @param time the timestamp as a String
      * @param text the user message as a String
      */
-    public Message(int id, String uname, int aId, String time, String text){
-        this.user_id = id;
+    public Message(String uname, int aId, String time, String text){
         this.username = uname;
         this.avatar_id = aId;
         this.timestamp = time;
         this.message = text;
-    }
-
-    /**
-     * Returns the user ID as an int
-     * @return the user ID as an int
-     */
-    public int getUserId(){
-        return this.user_id;
     }
 
     /**

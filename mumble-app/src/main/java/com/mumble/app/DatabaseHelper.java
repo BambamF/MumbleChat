@@ -33,7 +33,8 @@ public class DatabaseHelper {
 
         String createMessageTable = "CREATE TABLE IF NOT EXISTS messages(" + 
                                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " + 
-                                    "user_id INTEGER NOT NULL, " + 
+                                    "user_id INTEGER NOT NULL, " +
+                                    "username TEXT NOT NULL, " + 
                                     "message TEXT NOT NULL, " +
                                     "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " + 
                                     "FOREIGN KEY (user_id) REFERENCES users(id))";
@@ -86,34 +87,37 @@ public class DatabaseHelper {
      * Saves messages to the database
      * @param message the message to be saved as a Message object
      * @param id the users ID as an int
+     * @param userId the users ID as an int
      * @param timestamp the timestamp of the message as a String
      */
-    public static void saveMessage(int id, String message, String timestamp){
-        String sql = "INSERT INTO messages(user_id, message, timestamp) VALUES(?, ?, ?)";
+public static void saveMessage(int userId, String username, String message, String timestamp){
+    String sql = "INSERT INTO messages(user_id, username, message, timestamp) VALUES(?, ?, ?, ?)";
 
-        try(Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
-            pstmt.setInt(1, id);
-            pstmt.setString(2, timestamp);
-            pstmt.setString(3, message);
-            pstmt.executeUpdate();
-            System.out.println("Message saved!");
-        }
-        catch(SQLException e){
-            e.printStackTrace();
-        }
+    try(Connection conn = connect(); PreparedStatement pstmt = conn.prepareStatement(sql)){
+        pstmt.setInt(1, userId);
+        pstmt.setString(2, username);
+        pstmt.setString(3, message);
+        pstmt.setString(4, timestamp);
+        pstmt.executeUpdate();
+        System.out.println("Message saved!");
     }
+    catch(SQLException e){
+        e.printStackTrace();
+    }
+}
 
     /**
      * Drops and recreates the messages table
      */
     public static void resetMessagesTable() {
         String drop = "DROP TABLE IF EXISTS messages;";
-        String create = "CREATE TABLE IF NOT EXISTS messages (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                        "user_id INTEGER NOT NULL, " +
-                        "message TEXT NOT NULL, " +
-                        "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                        "FOREIGN KEY (user_id) REFERENCES users(id));";
+        String create = "CREATE TABLE IF NOT EXISTS messages(" + 
+                                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " + 
+                                    "user_id INTEGER NOT NULL, " +
+                                    "username TEXT NOT NULL, " + 
+                                    "message TEXT NOT NULL, " +
+                                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " + 
+                                    "FOREIGN KEY (user_id) REFERENCES users(id))";
         try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
             stmt.execute(drop);
             stmt.execute(create);
@@ -121,6 +125,33 @@ public class DatabaseHelper {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Drops and recreates the messages table
+     */
+    public static void resetUsersTable() {
+        String drop = "DROP TABLE IF EXISTS users;";
+        String create = "CREATE TABLE IF NOT EXISTS users( " +
+                                    "id INTEGER PRIMARY KEY AUTOINCREMENT, " + 
+                                    "username TEXT NOT NULL UNIQUE, " +
+                                    "email TEXT NOT NULL UNIQUE, " +
+                                    "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                                    "phone TEXT, " +
+                                    "public_key TEXT, " +
+                                    "password TEXT NOT NULL);";
+        try (Connection conn = connect(); Statement stmt = conn.createStatement()) {
+            stmt.execute(drop);
+            stmt.execute(create);
+            System.out.println("Users table reset successfully.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void resetBothTables(){
+        resetMessagesTable();
+        resetUsersTable();
     }
 
     /**
@@ -140,8 +171,7 @@ public class DatabaseHelper {
                 String username = rs.getString("username");
                 String message = rs.getString("message");
                 String timestamp = rs.getString("timestamp");
-                int userId = rs.getInt("user_id");
-                Message finalMessage = new Message(userId, username, 0, timestamp, message);
+                Message finalMessage = new Message(username, 0, timestamp, message);
                 messages.add(finalMessage);
                 System.out.println(username + "(" + timestamp + "): " + message);
             }

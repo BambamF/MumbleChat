@@ -1,8 +1,6 @@
 package com.mumble.app;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -12,13 +10,11 @@ import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Base64;
+import java.util.Date;
 import java.util.Random;
 
 import javax.crypto.Cipher;
-import javax.swing.JPanel;
-import javax.swing.JScrollBar;
-import javax.swing.JScrollPane;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
 
 /**
  * A ChatClientConnection provides methods to send messages to a live chat while preserving thread safety
@@ -30,6 +26,7 @@ public class ChatClientConnection implements Runnable{
     private BufferedReader in;
     private PrintWriter out;
     private User user;
+    private MumbleApp app;
 
     /**
      * Initialises the ChatClientConnection with a host name and port number, also takes in the chat windows view panel
@@ -40,13 +37,14 @@ public class ChatClientConnection implements Runnable{
      * @param sp the associated scroll pane as a JScrollPane
      * @throws IOException throws an IOException if socket connection fails
      */
-    public ChatClientConnection(String host, int port, JPanel vp, JScrollPane sp, User u) throws IOException{
+    public ChatClientConnection(String host, int port, JPanel vp, JScrollPane sp, User u, MumbleApp a) throws IOException{
         
         // initialise the socket with the host and the port, along with the view and scroll panels
         this.socket = new Socket(host, port);
         this.viewPanel = vp;
         this.scrollPane = sp;
         this.user = u;
+        this.app = a;
 
         
         // initialise the out field with the socket output stream, using a print writer
@@ -75,10 +73,15 @@ public class ChatClientConnection implements Runnable{
                 String[] parts = line.split("::");
 
                 // make sure the entry is in the right format
-                if(parts.length >= 3){
+                if(parts.length >= 3 && !parts[0].equals("LOGIN")){
+
+                    System.out.println("CCC run:" + line);
 
                     // extract the parts of the message
-                    String username = parts[0];
+                    String recipientUsername = parts[0];
+                    if (!recipientUsername.equals(user.getUsername())) {
+                        continue; // Skip message not intended for this client
+                    }
                     int avatarId = Integer.parseInt(parts[1]);
                     String message = parts[2];
                     String decryptedMessage;
@@ -94,19 +97,29 @@ public class ChatClientConnection implements Runnable{
 
                         // set the final message as a string
                         decryptedMessage = new String(decryptedBytes);
+
+                        System.out.println("CCC dec msg:" + decryptedMessage);
                     }
                     catch(Exception e){
                         e.printStackTrace();
                         decryptedMessage = "Message decryption failed";
                     }
 
-                    Message finalMessage = new Message(0, username, avatarId, "00:00:00", decryptedMessage);
+                    Date date = new Date();
+                    String timestamp = date.toString();
+
+                    System.out.println("CCC Decrypted msg: " + decryptedMessage);
+
+                    Message finalMessage = new Message(recipientUsername, avatarId, timestamp, decryptedMessage);
 
                     // renders the message to the screen
                     SwingUtilities.invokeLater(() -> {
-                        sendMessage(finalMessage, viewPanel);
+                        renderMessage(finalMessage);
                     });
 
+                }
+                else if(parts[0].equals("LOGIN")){
+                    return;
                 }
                 else{
                     throw new IllegalArgumentException("ChatClientConnection: Message parts length cannot be less than 3");
@@ -124,19 +137,19 @@ public class ChatClientConnection implements Runnable{
      * @param aId the avatar ID as an int
      * @param message the message as a String
      */
-    public void send(String username, int aId, String message){
+    public void send(String recipientUsername, int aId, String message){
         try{
 
-            PublicKey recipientKey = CryptoUtils.getPublicKeyByUsername(username);
+            PublicKey recipientKey = CryptoUtils.getPublicKeyByUsername(recipientUsername);
 
             if(recipientKey == null){
-                System.err.println("Public key not found for: " + username);
+                System.err.println("Public key not found for: " + recipientUsername);
                 return;
             }
 
             String encryptedBase64 = CryptoUtils.encryptToBase64(message, recipientKey);
 
-            String finalMessage = username + "::" + aId + "::" + encryptedBase64;
+            String finalMessage = recipientUsername + "::" + aId + "::" + encryptedBase64;
             out.println(finalMessage);
             out.flush();
             
@@ -183,6 +196,37 @@ public class ChatClientConnection implements Runnable{
         viewPanel.repaint();
     
         // Scroll to bottom
+        SwingUtilities.invokeLater(() -> {
+            JScrollBar vertical = scrollPane.getVerticalScrollBar();
+            vertical.setValue(vertical.getMaximum());
+        });
+    }
+
+        public void renderMessage(Message message) {
+        JPanel bubble = new JPanel();
+        bubble.setLayout(new BoxLayout(bubble, BoxLayout.Y_AXIS));
+        bubble.setBackground(app.getUser().getUsername().equals(message.getUsername()) ? ChatPanel.GREEN_BUBBLE : ChatPanel.BLUE_BUBBLE);
+        bubble.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
+
+        JLabel usernameLabel = new JLabel(message.getUsername());
+        usernameLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+
+        JLabel messageLabel = new JLabel("<html>" + message.getMessage() + "</html>");
+        messageLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+
+        bubble.add(usernameLabel);
+        bubble.add(messageLabel);
+
+        bubble.setAlignmentX(app.getUser().getUsername().equals(message.getUsername()) ? Component.RIGHT_ALIGNMENT : Component.LEFT_ALIGNMENT); // or LEFT based on user
+
+        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // RIGHT or LEFT based on sender
+        wrapper.setOpaque(false);
+        wrapper.add(bubble);
+
+        viewPanel.add(wrapper);
+        viewPanel.revalidate();
+        viewPanel.repaint();
+
         SwingUtilities.invokeLater(() -> {
             JScrollBar vertical = scrollPane.getVerticalScrollBar();
             vertical.setValue(vertical.getMaximum());

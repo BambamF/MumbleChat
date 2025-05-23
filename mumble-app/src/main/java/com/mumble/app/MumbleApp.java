@@ -12,9 +12,10 @@ public class MumbleApp extends JFrame {
     private static CardLayout cardLayout;
     private static JPanel mainPanel;
     public static final int COLUMN_WIDTH = 20;
-    private int userId;
-    private static ChatClientConnection clientConn;
+    private ChatClientConnection clientConn;
     private User user;
+    private ChatPanel chatPanel;
+    private LoginPanel loginPanel;
 
     /**
      * Instantiates the chat GUI
@@ -25,21 +26,22 @@ public class MumbleApp extends JFrame {
         setSize(1000, 750);
 
         // creates the database user and message schema
-        // DatabaseHelper.createSchema();
-        DatabaseHelper.resetMessagesTable();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
+         DatabaseHelper.createSchema();
+        // DatabaseHelper.resetMessagesTable();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
+        // DatabaseHelper.resetUsersTable();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
+        // DatabaseHelper.resetBothTables();                 // THIS IS ONLY FOR TESTING PURPOSES!!!!!!
 
         // card layout to switch pages
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
         // create pages
-        LoginPanel loginPanel = new LoginPanel(this, clientConn);
-        ChatPanel chatPanel = new ChatPanel(this, clientConn, user);
+        LoginPanel loginPanel = new LoginPanel(this);
+        this.loginPanel = loginPanel;
         CreateAccountPanel createAccountPanel = new CreateAccountPanel(this);
 
         // add the pages to the mainPanel
         mainPanel.add(loginPanel, "login");
-        mainPanel.add(chatPanel, "chat");
         mainPanel.add(createAccountPanel, "create-account");
 
         // add the mainPanel to the frame
@@ -55,7 +57,7 @@ public class MumbleApp extends JFrame {
     /**
      * Changes the view to the chat page
      */
-    public static void showChatPage(){
+    public void showChatPage() {
         cardLayout.show(mainPanel, "chat");
     }
 
@@ -73,15 +75,23 @@ public class MumbleApp extends JFrame {
         cardLayout.show(mainPanel, "create-account");
     }
 
+    public LoginPanel getLoginPanel(){
+        return this.loginPanel;
+    }
+
+    public ChatPanel getChatPanel(){
+        return this.chatPanel;
+    }
+
     /**
      * Activates the connection to the server via a ChatClientConnection
      * @param viewPanel the view panel as a JPanel
      * @param scrollPane the scrollpane as a JScrollPane
      */
-    public static void connectToServer(JPanel viewPanel, JScrollPane scrollPane, User user){
+    public void connectToServer(JPanel viewPanel, JScrollPane scrollPane, User user){
         try{
-            clientConn = new ChatClientConnection("localhost", ChatServer.PORT, viewPanel, scrollPane, user);
-            System.out.println("Chat client connection established");
+            clientConn = new ChatClientConnection("localhost", ChatServer.PORT, viewPanel, scrollPane, user, this);
+            System.out.println("Chat client connection established in App");
         }
         catch(IOException e){
             System.err.println("Chat client connection failed");
@@ -98,7 +108,7 @@ public class MumbleApp extends JFrame {
      * @param viewPanel the view panel as a JPanel
      * @param scrollPane the scrollpane as a JScrollPane
      */
-    public static void reconnectToServer(JPanel viewPanel, JScrollPane scrollPane, User user){
+    public void reconnectToServer(JPanel viewPanel, JScrollPane scrollPane, User user){
         Timer timer = new Timer(3000, e -> connectToServer(viewPanel, scrollPane, user) );
         timer.setRepeats(false);
         timer.start();
@@ -136,9 +146,31 @@ public class MumbleApp extends JFrame {
      * Sets the user object after sign in
      * @param username the username to be used as a String
      */
-    public void setUser(String username){
-        this.user = new User(username, 0);
+    public void setUser(String username, int userId){
+        this.user = new User(username, 0, userId);
     }
+
+    /**
+     * Returns the user
+     * @return the User object
+     */
+    public User getUser(){
+        return this.user;
+    }
+
+    /**
+     * Returns the client connection object
+     * @return the ChatClientConnection object
+     */
+    public ChatClientConnection getClientConn(){
+        return this.clientConn;
+    }
+
+    public void setChatPanel(ChatPanel cp) {
+        this.chatPanel = cp;
+        mainPanel.add(cp, "chat");
+    }
+
 
     public static void main(String[] args) {
 
