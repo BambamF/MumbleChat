@@ -73,20 +73,21 @@ public class ChatClientConnection implements Runnable{
                 String[] parts = line.split("::");
 
                 // make sure the entry is in the right format
-                if(parts.length >= 3 && !parts[0].equals("LOGIN")){
+                if(parts.length >= 5 && !parts[0].equals("LOGIN")){
 
                     System.out.println("CCC run:" + line);
 
                     // extract the parts of the message
-                    String recipientUsername = parts[0];
+                    String senderUsername = parts[0];
+                    String recipientUsername = parts[1];
                     if (!recipientUsername.equals(user.getUsername())) {
                         continue; // Skip message not intended for this client
                     }
-                    int avatarId = Integer.parseInt(parts[1]);
-                    String message = parts[2];
+                    int avatarId = Integer.parseInt(parts[2]);
+                    String message = parts[3];
+                    byte[] messageSignature = Base64.getDecoder().decode(parts[4]);
                     String decryptedMessage;
 
-                    // decrypt the message 
                     try{
 
                         // load the private key
@@ -94,6 +95,20 @@ public class ChatClientConnection implements Runnable{
 
                         // decrypt the message
                         byte[] decryptedBytes = CryptoUtils.decryptMessage(message, privateKey);
+
+                        // get the senders public key
+                        PublicKey senderPublicKey = CryptoUtils.getPublicKeyByUsername(senderUsername);
+
+                        // verify the encrypted message signature
+                        boolean isVerified = CryptoUtils.verifySignature(message, messageSignature, senderPublicKey);
+
+                        if(!isVerified){
+                            System.err.println("Message verification failed: possible tampering.");
+                            SwingUtilities.invokeLater(() -> {
+                                MumbleApp.showMessage("Message could not be verified, possible tampering", viewPanel, scrollPane);
+                            });
+                            return; 
+                        }
 
                         // set the final message as a string
                         decryptedMessage = new String(decryptedBytes);
@@ -110,7 +125,13 @@ public class ChatClientConnection implements Runnable{
 
                     System.out.println("CCC Decrypted msg: " + decryptedMessage);
 
-                    Message finalMessage = new Message(recipientUsername, avatarId, timestamp, decryptedMessage);
+                    Message finalMessage = new Message(this.user.getUsername(), 
+                                                        recipientUsername, 
+                                                        avatarId, 
+                                                        timestamp, 
+                                                        decryptedMessage, 
+                                                        messageSignature, 
+                                                        this.user);
 
                     // renders the message to the screen
                     SwingUtilities.invokeLater(() -> {
@@ -122,18 +143,21 @@ public class ChatClientConnection implements Runnable{
                     return;
                 }
                 else{
-                    throw new IllegalArgumentException("ChatClientConnection: Message parts length cannot be less than 3");
+                    throw new IllegalArgumentException("ChatClientConnection: Message parts length cannot be less than 5");
                 }
             }
         }
         catch(IOException e){
             e.printStackTrace();
         }
+        finally{
+            this.closeConnection();
+        }
     }
 
     /**
      * Sends the message to the server via the output stream
-     * @param username the username as a String
+     * @param recipientUsername the username as a String
      * @param aId the avatar ID as an int
      * @param message the message as a String
      */
@@ -142,6 +166,8 @@ public class ChatClientConnection implements Runnable{
 
             PublicKey recipientKey = CryptoUtils.getPublicKeyByUsername(recipientUsername);
 
+            PrivateKey privateKey = CryptoUtils.loadPrivateKey(user.getUsername());
+
             if(recipientKey == null){
                 System.err.println("Public key not found for: " + recipientUsername);
                 return;
@@ -149,7 +175,20 @@ public class ChatClientConnection implements Runnable{
 
             String encryptedBase64 = CryptoUtils.encryptToBase64(message, recipientKey);
 
-            String finalMessage = recipientUsername + "::" + aId + "::" + encryptedBase64;
+            byte[] messageSignature = CryptoUtils.signMessage(encryptedBase64, privateKey);
+
+            String senderUsername = this.user.getUsername();
+
+            String finalMessage =   senderUsername +
+                                    "::" +
+                                    recipientUsername + 
+                                    "::" + 
+                                    aId + 
+                                    "::" + 
+                                    encryptedBase64 + 
+                                    "::" + 
+                                    Base64.getEncoder().encodeToString(messageSignature);
+
             out.println(finalMessage);
             out.flush();
             
@@ -171,38 +210,26 @@ public class ChatClientConnection implements Runnable{
     }
 
     /**
-     * Renders the message to the screen via a chat bubble
-     * @param message the message as a String
-     * @param viewPanel the panel to be rendered in as a JPanel
+     * Gracefully closes the connection
      */
-    public void sendMessage(Message message, JPanel viewPanel) {
-        Random random = new Random();
-        int rand = random.nextInt(2);
-        Color colour = (rand == 1) ? ChatBubble.GREEN_BUBBLE : ChatBubble.BLUE_BUBBLE;
-        ChatBubble bubble = new ChatBubble(colour, MumbleApp.COLUMN_WIDTH, "username", rand);
-        bubble.addMessage(message);
-    
-        JPanel wrapper = new JPanel(new FlowLayout(rand == 1 ? FlowLayout.RIGHT : FlowLayout.LEFT, 5, 5));
-        wrapper.setOpaque(false);
-        wrapper.setBackground(new Color(0,0,0,0));
-        wrapper.setAlignmentX(Component.LEFT_ALIGNMENT);
-        wrapper.add(bubble);
-
-        // Add the new message at the end of the viewPanel
-        viewPanel.add(wrapper);
-    
-        // Revalidate and repaint the viewPanel to update the layout
-        viewPanel.revalidate();
-        viewPanel.repaint();
-    
-        // Scroll to bottom
-        SwingUtilities.invokeLater(() -> {
-            JScrollBar vertical = scrollPane.getVerticalScrollBar();
-            vertical.setValue(vertical.getMaximum());
-        });
+    public void closeConnection(){
+        try{
+            if(this.in != null){
+                this.in.close();
+            }
+            if(this.out != null){
+                this.out.close();
+            }
+            if(!this.socket.isClosed()){
+                this.socket.close();
+            }
+        }
+        catch(IOException e){
+            e.printStackTrace();
+        }
     }
 
-        public void renderMessage(Message message) {
+    public void renderMessage(Message message) {
         JPanel bubble = new JPanel();
         bubble.setLayout(new BoxLayout(bubble, BoxLayout.Y_AXIS));
         bubble.setBackground(app.getUser().getUsername().equals(message.getUsername()) ? ChatPanel.GREEN_BUBBLE : ChatPanel.BLUE_BUBBLE);
@@ -210,9 +237,11 @@ public class ChatClientConnection implements Runnable{
 
         JLabel usernameLabel = new JLabel(message.getUsername());
         usernameLabel.setFont(new Font("SansSerif", Font.BOLD, 12));
+        usernameLabel.setForeground(Color.WHITE);
 
         JLabel messageLabel = new JLabel("<html>" + message.getMessage() + "</html>");
         messageLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+        messageLabel.setForeground(Color.WHITE);
 
         bubble.add(usernameLabel);
         bubble.add(messageLabel);

@@ -143,11 +143,25 @@ public class CryptoUtils {
         return cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Encrypts a message to base64
+     * @param eMessage the message as a String
+     * @param publicKey the public key to be used 
+     * @return the base64 String
+     * @throws Exception
+     */
     public static String encryptToBase64(String eMessage, PublicKey publicKey) throws Exception{
         byte[] encryptedBytes = encryptMessage(eMessage, publicKey);
         return Base64.getEncoder().encodeToString(encryptedBytes);
     }
 
+    /**
+     * Decrypts a message
+     * @param message the message to be decrypted as a String
+     * @param pk the private key to be used in the decryption
+     * @return the decrypted message bytes
+     * @throws Exception
+     */
     public static byte[] decryptMessage(String message, PrivateKey pk) throws Exception{
 
         // decode the message into a byte array
@@ -157,6 +171,51 @@ public class CryptoUtils {
         Cipher cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, pk);
         return cipher.doFinal(decodedBytes);
+    }
+
+    /**
+     * Returns the signed bytes of a message
+     * @param message the message to be signed as a String
+     * @param privateKey the private key to be used in the signing
+     * @return the signed message as a byte array
+     * @throws Exception
+     */
+    public static byte[] signMessage(String message, PrivateKey privateKey) throws Exception{
+
+        // get the signature instance using the SHAwithRSA algorithm
+        Signature signature = Signature.getInstance("SHA256withRSA");
+
+        // initialise the signature with the private key
+        signature.initSign(privateKey);
+
+        // update the signature with the message bytes
+        signature.update(message.getBytes());
+
+        // return the signed message
+        return signature.sign();
+    }
+
+    /**
+     * Verifies congruence between a message and the signature sent with it
+     * @param message the message to be verified as a String
+     * @param signatureBytes the signature to be used in the verification as a byte array
+     * @param publicKey the public key to be used in the verification
+     * @return whether the message and message signature match as a boolean
+     * @throws Exception
+     */
+    public static boolean verifySignature(String message, byte[] signatureBytes, PublicKey publicKey) throws Exception{
+
+        // get the signature instance
+        Signature signature = Signature.getInstance("SHAwithRSA");
+
+        // initialise the signature for verification
+        signature.initVerify(publicKey);
+
+        // update the signature with the message bytes
+        signature.update(message.getBytes());
+
+        // return the comparison between the signed message and the signature bytes
+        return signature.verify(signatureBytes);
     }
 
 }
