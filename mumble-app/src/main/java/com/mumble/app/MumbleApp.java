@@ -22,7 +22,15 @@ public class MumbleApp extends JFrame {
      */
     public MumbleApp(){
         super("MumbleApp");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        // gracefully closes the connection and shuts down the app on exit
+        setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // Use overridden window closer instead
+        addWindowListener(new java.awt.event.WindowAdapter(){
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e){
+                shutDownApp();
+            }
+        });
         setSize(1000, 750);
 
         // creates the database user and message schema
@@ -59,6 +67,17 @@ public class MumbleApp extends JFrame {
      */
     public void showChatPage() {
         cardLayout.show(mainPanel, "chat");
+    }
+
+    /**
+     * Closes the connection and shutsdown the app
+     */
+    public void shutDownApp(){
+        if(this.clientConn != null){
+            this.clientConn.closeConnection();
+        }
+        dispose();
+        System.exit(0);
     }
 
     /**

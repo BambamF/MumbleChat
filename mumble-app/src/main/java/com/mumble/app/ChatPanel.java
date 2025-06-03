@@ -7,6 +7,7 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.IOException;
+import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
@@ -94,7 +95,13 @@ public class ChatPanel extends JPanel {
                         Date date = new Date();
                         String timestamp = date.toString();
 
-                        Message message = new Message(username, avatarId, timestamp, messageText);
+                        PrivateKey privateKey = CryptoUtils.loadPrivateKey(username);
+
+                        byte[] signatureBytes = CryptoUtils.signMessage(messageText, privateKey);
+
+                        String recipientUsername = ;
+
+                        Message message = new Message(username, recipientUsername, avatarId, timestamp, messageText, signatureBytes, this.user);
                         clientConn.send(username, avatarId, messageText);
                         System.out.println("chat panel message: " + messageText);
                         DatabaseHelper.saveMessage(user.getUserId(), username, messageText, timestamp);
