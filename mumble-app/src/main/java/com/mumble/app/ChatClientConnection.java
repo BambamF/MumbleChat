@@ -246,11 +246,21 @@ public class ChatClientConnection implements Runnable{
         bubble.add(usernameLabel);
         bubble.add(messageLabel);
 
-        bubble.setAlignmentX(app.getUser().getUsername().equals(message.getUsername()) ? Component.RIGHT_ALIGNMENT : Component.LEFT_ALIGNMENT); // or LEFT based on user
+        JLabel timestampLabel = new JLabel(message.getTimestamp());
+        timestampLabel.setFont(new Font("SansSerif", Font.PLAIN, 9));
+        timestampLabel.setForeground(Color.LIGHT_GRAY);
 
-        JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT)); // RIGHT or LEFT based on sender
+        JPanel timestampWrapper = new JPanel(new FlowLayout());
+        timestampWrapper.add(timestampLabel, FlowLayout.LEFT);
+
+        JPanel wrapper = new JPanel(); // RIGHT or LEFT based on sender
+        wrapper.setLayout(new BoxLayout(wrapper, BoxLayout.Y_AXIS));
         wrapper.setOpaque(false);
         wrapper.add(bubble);
+        wrapper.add(timestampWrapper);
+
+        wrapper.setAlignmentX(app.getUser().getUsername().equals(message.getUsername()) ? Component.RIGHT_ALIGNMENT : Component.LEFT_ALIGNMENT); // or LEFT based on user
+
 
         viewPanel.add(wrapper);
         viewPanel.revalidate();
