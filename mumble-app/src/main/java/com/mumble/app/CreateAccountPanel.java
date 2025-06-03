@@ -283,6 +283,8 @@ public class CreateAccountPanel extends JPanel{
         // construct ChatPanel *after* setting the user
         ChatPanel chatPanel = new ChatPanel(app);
         app.setChatPanel(chatPanel);  // add a method in MumbleApp to store this
+
+        // Activate client connection
         this.chatConnection = app.getClientConn();
         this.chatConnection.send("LOGIN", unameText);
 

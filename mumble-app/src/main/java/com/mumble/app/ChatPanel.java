@@ -26,15 +26,17 @@ public class ChatPanel extends JPanel {
     private ChatClientConnection clientConn;
     private User user;
     private MumbleApp app;
+    private int chatId;
     
     /**
      * Initialises and renders the chat panel 
      * @param a the MumbleApp object with the main thread
      */
-    public ChatPanel(MumbleApp a){
+    public ChatPanel(MumbleApp a, int cId){
         super(new BorderLayout());
 
         this.app = a;
+        this.chatId = cId;
 
         // create the view panel
         viewPanel = new ScrollablePanel();
