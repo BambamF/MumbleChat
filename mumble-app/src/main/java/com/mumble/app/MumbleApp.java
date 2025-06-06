@@ -1,6 +1,14 @@
 package com.mumble.app;
 
 import javax.swing.*;
+
+import com.mumble.app.ClientServerConnection.ChatClientConnection;
+import com.mumble.app.ClientServerConnection.ChatServer;
+import com.mumble.app.DB.DatabaseHelper;
+import com.mumble.app.Panels.ChatPanel;
+import com.mumble.app.Panels.CreateAccountPanel;
+import com.mumble.app.Panels.LoginPanel;
+
 import java.awt.*;
 import java.io.IOException;
 
@@ -16,6 +24,7 @@ public class MumbleApp extends JFrame {
     private User user;
     private ChatPanel chatPanel;
     private LoginPanel loginPanel;
+    private String relativePath = System.getProperty("user.dir");
 
     /**
      * Instantiates the chat GUI
@@ -67,6 +76,14 @@ public class MumbleApp extends JFrame {
      */
     public void showChatPage() {
         cardLayout.show(mainPanel, "chat");
+    }
+
+    /**
+     * Returns the relative path
+     * @return the relative path as a String
+     */
+    public String getReletivePath(){
+        return this.relativePath;
     }
 
     /**
