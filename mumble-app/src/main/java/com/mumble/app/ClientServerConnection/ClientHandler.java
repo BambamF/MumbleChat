@@ -74,17 +74,21 @@ public class ClientHandler implements Runnable{
      */
     private void broadcast(String msg) {
         String[] parts = msg.split("::");
-        if (parts.length < 1) return;
+        if (parts.length >= 2 && parts[0].equals("LOGIN")) return;
 
-        String recipientUsername = parts[0];
-        for (ClientHandler client : clients) {
-            if (client.getUser() != null && client.getUser().getUsername().equals(recipientUsername)) {
-                client.out.println(msg);
-                client.out.flush();
-               // break; // stop after sending to the right user
+        if (parts.length >= 2) {
+            String recipientUsername = parts[1];
+
+            for (ClientHandler client : clients) {
+                if (client.getUser() != null && 
+                    client.getUser().getUsername().equals(recipientUsername)) {
+                    System.out.println("Broadcasting to: " + recipientUsername);
+                    client.out.println(msg);
+                    client.out.flush();
+                }
             }
         }
-    }
+}
 
     /**
      * Returns the user object

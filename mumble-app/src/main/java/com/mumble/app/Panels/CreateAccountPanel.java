@@ -1,5 +1,6 @@
 package com.mumble.app.Panels;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +10,7 @@ import javax.swing.border.LineBorder;
 import org.springframework.security.crypto.bcrypt.*;
 
 import com.mumble.app.MumbleApp;
+import com.mumble.app.User;
 import com.mumble.app.ClientServerConnection.ChatClientConnection;
 import com.mumble.app.DB.DatabaseHelper;
 import com.mumble.app.DB.DatabaseManager;
@@ -102,7 +104,8 @@ public class CreateAccountPanel extends JPanel{
                 System.out.println("Changing to chat page");
                 System.out.println("CreateAccount connection: " + this.chatConnection.toString());
                 System.out.println("CreateAccount user: " + app.getUser().getUsername());
-                app.showChatPage();
+                int botChatID = 0;
+                app.showChatPage(botChatID);
             }
 
         });
@@ -287,9 +290,12 @@ public class CreateAccountPanel extends JPanel{
         int userId = DatabaseManager.getUserId(unameText, pwFromDb);
         // send loginCode to the chatClientConnection, this sets the User object with the users username
         app.setUser(unameText, userId);
+        List<User> initialUsers = new ArrayList<>();
+        initialUsers.add(app.getUser());
+        initialUsers.add(app.getBotUser());
         // construct ChatPanel *after* setting the user
-        ChatPanel chatPanel = new ChatPanel(app);
-        app.setChatPanel(chatPanel);  // add a method in MumbleApp to store this
+        ChatPanel chatPanel = new ChatPanel(app, initialUsers, 0);
+        app.addChatPanel(0, chatPanel);  // add a method in MumbleApp to store this
 
         // Activate client connection
         this.chatConnection = app.getClientConn();

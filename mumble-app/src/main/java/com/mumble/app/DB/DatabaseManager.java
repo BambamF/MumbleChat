@@ -1,10 +1,13 @@
 package com.mumble.app.DB;
 
+import java.security.PrivateKey;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.mumble.app.Message;
+import com.mumble.app.User;
+import com.mumble.app.Utils.CryptoUtils;
 
 /**
  * A DatabaseManager provides methods to query user data from the database
@@ -35,11 +38,22 @@ public class DatabaseManager{
                 int id = rs.getInt("user_id");
                 String message = rs.getString("message");
                 String timestamp = rs.getString("timestamp");
+                String username = rs.getString("username");
+                List<String> uNameList = new ArrayList<>();
+                uNameList.add(username);
+                User user = new User(username, 0, id);
 
-                messages.add(new Message("username", 0, message, timestamp));
+                PrivateKey privateKey = CryptoUtils.loadPrivateKey(username);
+
+                byte[] signature = CryptoUtils.signMessage(message, privateKey);
+
+                messages.add(new Message(username, uNameList, 0, timestamp, message, signature, user));
             }
         }
         catch(SQLException e){
+            e.printStackTrace();
+        }
+        catch(Exception e){
             e.printStackTrace();
         }
 

@@ -1,11 +1,13 @@
 package com.mumble.app;
 
+import java.util.List;
+
 /**
  * A Message to creates a user message
  */
 public class Message {
     private final String username;
-    private final String recepientUsername;
+    private final List<String> recepientUsernames;
     private final int avatar_id;
     private final String timestamp;
     private final String message;
@@ -20,9 +22,9 @@ public class Message {
      * @param time the timestamp as a String
      * @param text the user message as a String
      */
-    public Message(String uname, String recepUsername, int aId, String time, String messageText, byte[] signatureBytes, User u){
+    public Message(String uname, List<String> recepUsernames, int aId, String time, String messageText, byte[] signatureBytes, User u){
         this.username = uname;
-        this.recepientUsername = recepUsername;
+        this.recepientUsernames = recepUsernames;
         this.avatar_id = aId;
         this.timestamp = time;
         this.message = messageText;
@@ -58,8 +60,8 @@ public class Message {
      * Returns the recepient username
      * @return the recepient username as a String
      */
-    public String getRecepientUsername(){
-        return this.recepientUsername;
+    public List<String> getRecepientUsernames(){
+        return this.recepientUsernames;
     }
 
     /**

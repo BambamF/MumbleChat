@@ -208,7 +208,7 @@ public class CryptoUtils {
     public static boolean verifySignature(String message, byte[] signatureBytes, PublicKey publicKey) throws Exception{
 
         // get the signature instance
-        Signature signature = Signature.getInstance("SHAwithRSA");
+        Signature signature = Signature.getInstance("SHA256withRSA");
 
         // initialise the signature for verification
         signature.initVerify(publicKey);

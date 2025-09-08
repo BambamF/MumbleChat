@@ -5,12 +5,24 @@ import javax.swing.*;
 import com.mumble.app.ClientServerConnection.ChatClientConnection;
 import com.mumble.app.ClientServerConnection.ChatServer;
 import com.mumble.app.DB.DatabaseHelper;
+import com.mumble.app.DB.DatabaseManager;
 import com.mumble.app.Panels.ChatPanel;
 import com.mumble.app.Panels.CreateAccountPanel;
 import com.mumble.app.Panels.LoginPanel;
+import com.mumble.app.Utils.CryptoUtils;
 
 import java.awt.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A MumbleApp launches the chat GUI
@@ -22,9 +34,13 @@ public class MumbleApp extends JFrame {
     public static final int COLUMN_WIDTH = 20;
     private ChatClientConnection clientConn;
     private User user;
-    private ChatPanel chatPanel;
+    private User botUser;
+    private Map<Integer, ChatPanel> chatPanels = new HashMap<>();
     private LoginPanel loginPanel;
+    private CreateAccountPanel createAccountPanel;
     private String relativePath = System.getProperty("user.dir");
+    private static int nextChatId = 1;
+    private static final int botChatID = 0;
 
     /**
      * Instantiates the chat GUI
@@ -52,10 +68,55 @@ public class MumbleApp extends JFrame {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
+        this.botUser = new User("bot", 0, 0);
+
+        Date date = new Date();
+        String timestamp = date.toString();
+
+
+        try{
+        KeyPair botKP = CryptoUtils.generateRSAKeyPair();
+        PublicKey botPubKey = botKP.getPublic();
+        PrivateKey botPrivKey = botKP.getPrivate();
+
+        String encBotPubKey = CryptoUtils.encodeKey(botPubKey);
+            if(!DatabaseManager.usernameExists(botUser.getUsername())){
+                DatabaseHelper.saveUser(botUser.getUsername(), "Password1@", "bot@email.com", "07483846271", encBotPubKey, timestamp);
+                try{
+                    File keyDir = new File("keys"); 
+                    if(!keyDir.exists()){
+                        keyDir.mkdirs();
+                    }
+                    try(FileOutputStream fos = new FileOutputStream("keys/private_" + botUser.getUsername() + ".key")){
+                        fos.write(botPrivKey.getEncoded());
+                    }
+                    catch(FileNotFoundException e){
+                        e.printStackTrace();
+                    }
+                    catch(IOException e){
+                        e.printStackTrace();
+                    }
+                    catch(Exception e){
+                        e.printStackTrace();
+                    }
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
+        catch(NoSuchAlgorithmException e){
+            e.printStackTrace();
+        }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
         // create pages
         LoginPanel loginPanel = new LoginPanel(this);
         this.loginPanel = loginPanel;
         CreateAccountPanel createAccountPanel = new CreateAccountPanel(this);
+        this.createAccountPanel = createAccountPanel;
 
         // add the pages to the mainPanel
         mainPanel.add(loginPanel, "login");
@@ -72,10 +133,10 @@ public class MumbleApp extends JFrame {
     }
 
     /**
-     * Changes the view to the chat page
+     * Changes the view to the revlevant chat page given a chat ID as an int
      */
-    public void showChatPage() {
-        cardLayout.show(mainPanel, "chat");
+    public void showChatPage(int pageID) {
+        cardLayout.show(mainPanel, "chat" + pageID);
     }
 
     /**
@@ -84,6 +145,32 @@ public class MumbleApp extends JFrame {
      */
     public String getReletivePath(){
         return this.relativePath;
+    }
+
+    /**
+     * Returns a generated chat ID as an int
+     * @return the generated chat ID as an int
+     */
+    public int generateChatID(){
+        int currChatID = nextChatId;
+        nextChatId++;
+        return currChatID;
+    }
+
+    /**
+     * Returns the bot chat ID as an int
+     * @return the bot chat ID as an int
+     */
+    public int getBotChatID(){
+        return botChatID;
+    }
+
+    /**
+     * Returns the bot user as a User object
+     * @return the bot user as a User object
+     */
+    public User getBotUser(){
+        return this.botUser;
     }
 
     /**
@@ -115,8 +202,8 @@ public class MumbleApp extends JFrame {
         return this.loginPanel;
     }
 
-    public ChatPanel getChatPanel(){
-        return this.chatPanel;
+    public Map<Integer, ChatPanel> getChatPanel(){
+        return this.chatPanels;
     }
 
     /**
@@ -202,9 +289,25 @@ public class MumbleApp extends JFrame {
         return this.clientConn;
     }
 
-    public void setChatPanel(ChatPanel cp) {
-        this.chatPanel = cp;
-        mainPanel.add(cp, "chat");
+    /**
+     * Adds a chat panel to the map of chat panels active
+     * @param cp
+     */
+    public void addChatPanel(ChatPanel cp) {
+        int genChatID = this.generateChatID();
+        cp.setChatID(genChatID);
+        this.chatPanels.put(genChatID, cp);
+        mainPanel.add(cp, "chat" + genChatID);
+    }
+
+    /**
+     * (Overloaded) Adds a chat panel to the map of chat panels active
+     * @param cp
+     */
+    public void addChatPanel(int genChatID, ChatPanel cp) {
+        cp.setChatID(genChatID);
+        this.chatPanels.putIfAbsent(genChatID, cp);
+        mainPanel.add(cp, "chat" + genChatID);
     }
 
 
@@ -218,6 +321,9 @@ public class MumbleApp extends JFrame {
             Thread.sleep(500);
         }
         catch(InterruptedException e){
+            e.printStackTrace();
+        }
+        catch(Exception e){
             e.printStackTrace();
         }
 

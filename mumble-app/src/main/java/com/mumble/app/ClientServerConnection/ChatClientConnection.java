@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.crypto.Cipher;
 import javax.swing.*;
@@ -84,9 +85,7 @@ public class ChatClientConnection implements Runnable{
                 String[] parts = line.split("::");
 
                 // make sure the entry is in the right format
-                if(parts.length >= 5 && !parts[0].equals("LOGIN")){
-
-                    System.out.println("CCC run:" + line);
+                if(parts.length > 3 && !parts[0].equals("LOGIN")){
 
                     // extract the parts of the message
                     String senderUsername = parts[0];
@@ -134,16 +133,19 @@ public class ChatClientConnection implements Runnable{
                     Date date = new Date();
                     String timestamp = date.toString();
 
-                    System.out.println("CCC Decrypted msg: " + decryptedMessage);
+                    List<String> recepientUsernames = this.connectedUsers.stream()
+                                                            .map(u -> u.getUsername())
+                                                            .collect(Collectors.toList());
 
                     Message finalMessage = new Message(this.user.getUsername(), 
-                                                        recipientUsername, 
+                                                        recepientUsernames, 
                                                         avatarId, 
                                                         timestamp, 
                                                         decryptedMessage, 
                                                         messageSignature, 
                                                         this.user);
 
+                    System.out.println("CCC: run validation before render");
                     // renders the message to the screen
                     SwingUtilities.invokeLater(() -> {
                         renderMessage(finalMessage);
@@ -172,8 +174,11 @@ public class ChatClientConnection implements Runnable{
      * @param aId the avatar ID as an int
      * @param message the message as a String
      */
-    public void send(String recipientUsername, int aId, String message){
-        try{
+    public void send(List<String> recipientUsernames, int aId, Message message){
+        for(String recipientUsername : recipientUsernames){
+           try{
+
+            System.out.println("CCC: send method validation");
 
             PublicKey recipientKey = CryptoUtils.getPublicKeyByUsername(recipientUsername);
 
@@ -184,7 +189,7 @@ public class ChatClientConnection implements Runnable{
                 return;
             }
 
-            String encryptedBase64 = CryptoUtils.encryptToBase64(message, recipientKey);
+            String encryptedBase64 = CryptoUtils.encryptToBase64(message.getMessage(), recipientKey);
 
             byte[] messageSignature = CryptoUtils.signMessage(encryptedBase64, privateKey);
 
@@ -206,7 +211,9 @@ public class ChatClientConnection implements Runnable{
         }
         catch(Exception e){
             e.printStackTrace();
+        } 
         }
+        
     }
 
     /**

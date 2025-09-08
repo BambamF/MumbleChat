@@ -11,6 +11,7 @@ import java.security.PrivateKey;
 import java.util.Date;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import javax.swing.*;
 
@@ -36,16 +37,18 @@ public class ChatPanel extends JPanel {
     private User user;
     private MumbleApp app;
     private int chatId;
+    private List<User> chatUserList;
     
     /**
      * Initialises and renders the chat panel 
      * @param a the MumbleApp object with the main thread
      */
-    public ChatPanel(MumbleApp a, int cId){
+    public ChatPanel(MumbleApp a, List<User> initialUsers, int cID){
         super(new BorderLayout());
 
         this.app = a;
-        this.chatId = cId;
+        this.chatUserList = initialUsers;
+        this.chatId = cID;
 
         // create the view panel
         viewPanel = new ScrollablePanel();
@@ -110,10 +113,14 @@ public class ChatPanel extends JPanel {
 
                         byte[] signatureBytes = CryptoUtils.signMessage(messageText, privateKey);
 
-                        String recipientUsername = ;
+                        List<String> recipientUsernames = this.chatUserList.stream()
+                                                                            .map(chatter ->  chatter.getUsername())
+                                                                                .collect(Collectors.toList());
 
-                        Message message = new Message(username, recipientUsername, avatarId, timestamp, messageText, signatureBytes, this.user);
-                        clientConn.send(username, avatarId, messageText);
+                        recipientUsernames.stream().forEach(un -> System.out.println("Recipient username in ChatPanel: " + un));
+
+                        Message message = new Message(username, recipientUsernames, avatarId, timestamp, messageText, signatureBytes, this.user);
+                        clientConn.send(recipientUsernames, avatarId, message);
                         System.out.println("chat panel message: " + messageText);
                         DatabaseHelper.saveMessage(user.getUserId(), username, messageText, timestamp);
                         textField.setText("");   
@@ -163,8 +170,16 @@ public class ChatPanel extends JPanel {
                         Date date = new Date();
                         String timestamp = date.toString();
 
-                        Message message = new Message(username, avatarId, timestamp, messageText);
-                        clientConn.send(username, avatarId, messageText);
+                        PrivateKey privateKey = CryptoUtils.loadPrivateKey(username);
+
+                        byte[] signatureBytes = CryptoUtils.signMessage(messageText, privateKey);
+
+                        List<String> recipientUsernames = this.chatUserList.stream()
+                                                                            .map(chatter ->  chatter.getUsername())
+                                                                                .collect(Collectors.toList());
+
+                        Message message = new Message(username, recipientUsernames, avatarId, timestamp, messageText, signatureBytes, this.user);
+                        clientConn.send(recipientUsernames, avatarId, message);
                         System.out.println("chat panel message: " + messageText);
                         DatabaseHelper.saveMessage(user.getUserId(), username, messageText, timestamp);
                         textField.setText("");   
@@ -183,7 +198,7 @@ public class ChatPanel extends JPanel {
                         // retry the connection
                         app.reconnectToServer(viewPanel, scrollPane, user);
                     }    
-            }     
+            }   
             else if(clientConn == null){
                 System.err.println("client conn is null");
             }
@@ -240,5 +255,32 @@ public class ChatPanel extends JPanel {
     public JScrollPane getScrollPane(){
         return this.scrollPane;
     }
+
+    public void setChatID(int cID){
+        this.chatId = cID;
+    }
+
+    public int getChatID(){
+        return this.chatId;
+    }
+
+    public List<User> getChatUserList(){
+        return this.chatUserList;
+    }
+
+    public boolean userIsInChat(User u){
+        return this.chatUserList.contains(u);
+    }
+
+    public void addUserToChat(User u){
+        this.chatUserList.add(u);
+    }
+
+    public void removeUserFromChat(User u){
+        this.chatUserList.remove(u);
+        assert !this.chatUserList.contains(u) : "Chat user removal failed in: ChatPanel -removeUserFromChat()- method.";
+    }
+
+
 
 }

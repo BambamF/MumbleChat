@@ -5,12 +5,15 @@ import javax.swing.*;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import com.mumble.app.MumbleApp;
+import com.mumble.app.User;
 import com.mumble.app.ClientServerConnection.ChatClientConnection;
 import com.mumble.app.DB.DatabaseManager;
 import com.mumble.app.Utils.InputSanitiser;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -93,28 +96,33 @@ public class LoginPanel extends JPanel {
 
             String pwFromDb = DatabaseManager.getPassword(username);
 
-                if(!DatabaseManager.usernameExists(username)){
-                    JOptionPane.showMessageDialog(this, "username not found! please create an account");
-                }
-                else if(!BCrypt.checkpw(new String(password), pwFromDb)){
-                    JOptionPane.showMessageDialog(this, "incorrect password, please try again");
-                }
-                else{
-                    usernameField.setText("");
-                    pwField.setText("");
-                    int userId = DatabaseManager.getUserId(username, pwFromDb);
-                    // send loginCode to the chatClientConnection, this sets the User object with the users username
-                    app.setUser(username, userId);
+            if(!DatabaseManager.usernameExists(username)){
+                JOptionPane.showMessageDialog(this, "username not found! please create an account");
+            }
+            else if(!BCrypt.checkpw(new String(password), pwFromDb)){
+                JOptionPane.showMessageDialog(this, "incorrect password, please try again");
+            }
+            else{
+                usernameField.setText("");
+                pwField.setText("");
+                // send loginCode to the chatClientConnection, this sets the User object with the users username
+                app.setUser(username, user_id);
+                // construct ChatPanel *after* setting the user
+                int botChatID = app.getBotUser().getUserId();
+                List<User> initialUsers = new ArrayList<>();
+                User user = new User(username, 0, user_id);
+                initialUsers.add(user);
+                initialUsers.add(app.getBotUser());
+                ChatPanel chatPanel = new ChatPanel(app, initialUsers, botChatID);
+                app.addChatPanel(botChatID, chatPanel);  // add a method in MumbleApp to store this
+                this.chatConnection = app.getClientConn();
+                this.chatConnection.send("LOGIN", username);
+                System.out.println("LoginPanel connection: " + this.chatConnection.toString());
+                System.out.println("LoginPanel user: " + app.getUser().getUsername());
 
-                    // construct ChatPanel *after* setting the user
-                    ChatPanel chatPanel = new ChatPanel(app);
-                    app.setChatPanel(chatPanel);  // add a method in MumbleApp to store this
-                    this.chatConnection = app.getClientConn();
-                    this.chatConnection.send("LOGIN", username);
-                    System.out.println("LoginPanel connection: " + this.chatConnection.toString());
-                    System.out.println("LoginPanel user: " + app.getUser().getUsername());
-                    app.showChatPage();
-                }
+                // change app to keep track of last chat viewed, and change this method to show it
+                app.showChatPage(botChatID);
+            }
             
             Arrays.fill(password, '0');
 

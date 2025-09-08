@@ -1,10 +1,13 @@
 package com.mumble.app.DB;
 
+import java.security.PrivateKey;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.mumble.app.Message;
+import com.mumble.app.User;
+import com.mumble.app.Utils.CryptoUtils;
 
 /**
  * A DatabaseHelper provides methods to create database schema, save users, save messages and retrieve messages
@@ -173,13 +176,22 @@ public static void saveMessage(int userId, String username, String message, Stri
                 String username = rs.getString("username");
                 String message = rs.getString("message");
                 String timestamp = rs.getString("timestamp");
-                Message finalMessage = new Message(username, 0, timestamp, message);
+                int userId = rs.getInt("user_id");
+                List<String> recepUsernames = new ArrayList<>();
+                recepUsernames.add(username);
+                User user = new User(username, 0, userId);
+                PrivateKey privateKey = CryptoUtils.loadPrivateKey(username);
+                byte[] signature = CryptoUtils.signMessage(message, privateKey);
+                Message finalMessage = new Message(username, recepUsernames, 0, timestamp, message, signature, user);
                 messages.add(finalMessage);
                 System.out.println(username + "(" + timestamp + "): " + message);
             }
 
         }
         catch(SQLException e){
+            e.printStackTrace();
+        }
+        catch(Exception e){
             e.printStackTrace();
         }
 
