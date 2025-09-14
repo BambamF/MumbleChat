@@ -80,31 +80,37 @@ class GPT_MODEL_6(nn.Module):
         pad_symbol = self.vocab['<pad>']
         unk_symbol = self.vocab['<unk>']
 
+        if encoder_input.dim() == 1:
+            encoder_input = encoder_input.unsqueeze(0)  # Make it [1, seq_len]
+    
+
         padded_encoder_input = torch.full(
-            size=(1, encoder_input.shape[0]), 
+            size=(1, self.max_len), 
             fill_value=pad_symbol, 
-            device=self.devuice, 
-            dtype=torch.long)
+            device=self.device, 
+            dtype=torch.long
+            )
 
         decoder_input = torch.tensor(
             data=[[start_symbol]],
             dtype=torch.long,
-            device=self.device,
-            requires_grad=False
+            device=self.device
         )
-        
-        padded_encoder_input[0: encoder_input.shape[0]] = encoder_input.squeeze(dim=0)
 
-        for _ in range(max_new_tokens - 1):
-            decoder_input_truncated = decoder_input[:, -max_new_tokens]
-            logits, loss = self(padded_encoder_input, decoder_input_truncated)
-            logits = logits[:, -1, :]
-            probs = torch.softmax(logits, dim=-1)
-            next_logits = torch.multinomial(probs, num_samples=1)
-            decoder_input = torch.cat([decoder_input, next_logits], dim=1)
-            if next_logits.item() == end_symbol:
-                break
+        seq_len = min(encoder_input.shape[1], self.max_len)
+        
+        padded_encoder_input[0, :seq_len] = encoder_input[0, :seq_len]
+        with torch.no_grad():
+            for _ in range(max_new_tokens - 1):
+                decoder_input_truncated = decoder_input[:, -self.max_len:]
+                logits, loss = self(padded_encoder_input, decoder_input_truncated)
+                logits = logits[:, -1, :]
+                probs = torch.softmax(logits, dim=-1)
+                next_logits = torch.multinomial(probs, num_samples=1)
+                decoder_input = torch.cat([decoder_input, next_logits], dim=1)
+                if next_logits.item() == end_symbol:
+                    break
         tgt_tokens = decoder_input.squeeze().tolist()
 
-        return " ".join([self.reverse_word_map.get(i, self.reverse_word_map[unk_symbol]) for i in tgt_tokens if i not in [start_symbol, end_symbol, pad_symbol]])
-
+        return " ".join([self.reverse_vocab.get(i, self.reverse_vocab[unk_symbol]) for i in tgt_tokens if i not in [start_symbol, end_symbol, pad_symbol]])
+    

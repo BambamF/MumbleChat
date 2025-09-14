@@ -9,7 +9,7 @@ class MultiHead(nn.Module):
         super().__init__()
 
         self.heads = nn.ModuleList(
-            [Head(block_size, d_model, head_size, dropout, device, mask=True) for _ in range(n_head)]
+            [Head(block_size, d_model, head_size, dropout, device, mask=mask) for _ in range(n_head)]
         )
 
         self.proj = nn.Linear(

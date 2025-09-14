@@ -15,6 +15,8 @@ import traceback
 import json
 from shutil import rmtree, copytree
 from MovieDialogueDataset import MovieDialogueDataset
+from GPT_MODEL_6 import GPT_MODEL_6
+import random
 
 def remove_punctuation(sentence: str) -> str:
     pattern = r"[^a-zA-Z0-9\s]"
@@ -29,6 +31,8 @@ def word_to_idx(words: list[str], word_map: dict[str, int]) -> list[int]:
 
 def idx_to_word(idx: list[int], reverse_word_map: dict[int, str]) -> list[str]:
     return [reverse_word_map.get(i, reverse_word_map[16577]) for i in idx]
+
+
 
 def __main__():
     # device agnostic
@@ -167,6 +171,7 @@ def __main__():
     block_size = 15
     batch_size = 32
     max_len = 15
+    dropout=0.2
 
     train_dataloader = DataLoader(
         dataset=train_dataset,
@@ -180,9 +185,40 @@ def __main__():
         shuffle=False
     )
 
-    print(len(train_dataloader))
-    print(len(test_dataloader))
+    steps = 50
+
+    # instantiate the model
+    model = GPT_MODEL_6(
+        d_model=d_model, 
+        n_head=n_head, 
+        n_layer=n_layer, 
+        vocab=word_map, 
+        reverse_vocab=reverse_word_map,
+        dropout=dropout,
+        block_size=max_len,
+        device=device,
+        max_len=max_len,
+        )
     
+    questions = [
+        "Hi, what's your name?",
+        "Please come with me, I'm scared.",
+        "May the best man win.",
+        "With great power...",
+        "Bring that torch with you.",
+        "Good Morning."
+    ]
+
+    question = random.choice(questions)
+    
+    sample_encoder_input = torch.tensor(
+        data=[word_map.get(w, word_map['<unk>']) for w in remove_punctuation(question).strip().split()[:max_len]]
+    )
+
+    print(f"Question:\n{question}\nAnswer:")
+    # test run
+    with torch.no_grad():
+        print(model.generate(sample_encoder_input, max_new_tokens=15))
 
 if __name__ == "__main__":
     __main__()

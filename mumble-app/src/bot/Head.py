@@ -34,13 +34,12 @@ class Head(nn.Module):
             context = x
         B, T_x, _ = x.shape
         B, T_c, _ = context.shape
-        k = self.key(x)
-        q = self.query(context)
+        q = self.query(x)
+        k = self.key(context)
         wei = q @ k.transpose(-2, -1) * (q.size(-1) ** -0.5)
 
-        if self.mask:
+        if self.mask and context is x:
             mask = self.tril[:T_x, :T_c]
-            mask = mask.unsqueeze(0)
             wei = wei.masked_fill(mask == 0, float('inf'))
         
         wei = F.softmax(wei, dim=-1)
