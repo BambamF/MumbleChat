@@ -168,9 +168,8 @@ def __main__():
     d_model = 512
     n_head = 8
     n_layer = 6
-    block_size = 15
     batch_size = 32
-    max_len = 15
+    max_len = 16
     dropout=0.2
 
     train_dataloader = DataLoader(
@@ -219,6 +218,101 @@ def __main__():
     # test run
     with torch.no_grad():
         print(model.generate(sample_encoder_input, max_new_tokens=15))
+
+    # set the seed
+    torch.manual_seed(42)
+    torch.cuda.manual_seed(42)
+
+    LR = 1e-3
+    WD = 0.01
+
+    optimiser = torch.optim.AdamW(params=model.parameters(), lr=LR, weight_decay=WD)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer=optimiser,
+        step_size=5,
+        gamma=0.5
+    )
+
+    train_loss_list = []
+    train_loss = 0
+
+    val_loss_list = []
+    val_loss = 0
+
+    # set the model to train mode
+    model.train()
+    for step in tqdm(range(steps)):
+
+        # reset the loss
+        train_loss = 0
+        val_loss = 0
+
+        for batch, (encoder_input, decoder_input, decoder_output) in (enumerate(train_dataloader)):
+
+            encoder_input = encoder_input.to(device)
+            decoder_input = decoder_input.to(device)
+            decoder_output = decoder_output.to(device)
+
+            # forward pass
+            curr_train_logits, curr_train_loss = model(encoder_input, decoder_input, decoder_output)
+
+            # optimiser zero grad
+            optimiser.zero_grad()
+
+            # loss backward
+            curr_train_loss.backward()
+
+            # optimiser step
+            optimiser.step()
+
+            train_loss += curr_train_loss.item()
+
+            if batch % 1000 == 0:
+                print(f"Train Step: {step}\nBatch: {batch}\nTrain Loss: {curr_train_loss.item()}\n")
+
+        train_loss /= len(train_dataloader)
+        train_loss_list.append(train_loss)
+
+        # set the model to eval mode
+        model.eval()
+
+        with torch.no_grad():    
+            for val_batch, (val_enc_input, val_dec_input, val_dec_output) in enumerate(test_dataloader):
+
+                val_enc_input = val_enc_input.to(device)
+                val_dec_input = val_dec_input.to(device)
+                val_dec_output = val_dec_output.to(device)
+
+                curr_val_logits, curr_val_loss = model(val_enc_input, val_dec_input, val_dec_output)
+
+                val_loss += curr_val_loss.item()
+
+                if val_batch % 100 == 0:
+                    val_question = random.choice(questions)
+                    val_q_input = torch.tensor(
+                        data=[word_map.get(w, word_map['<unk>']) for w in remove_punctuation(val_question).strip().split() if w],
+                        dtype=torch.long,
+                        device=device
+                    )
+                    print(f"Val Batch: {val_batch}\nVal Loss: {curr_val_loss}")
+
+            val_loss /= len(test_dataloader)
+            val_loss_list.append(val_loss)
+
+        # scheduler step
+        scheduler.step()
+
+        if step % 5 == 0:
+            val_question = random.choice(questions)
+            val_q_input = torch.tensor(
+                data=[word_map.get(w, word_map['<unk>']) for w in remove_punctuation(val_question).strip().split() if w],
+                dtype=torch.long,
+                device=device,
+                requires_grad=False
+            )
+
+            with torch.inference_mode():
+                print(f"Question:\n{val_question}\nAnswer:\n{model.generate(val_q_input, max_new_tokens=max_len)}")
 
 if __name__ == "__main__":
     __main__()
